@@ -1,0 +1,31 @@
+{
+    "name": "personal-finances",
+    "version": "1.0.0",
+    "description": "Personal Finances Web App",
+    "main": "src/index.ts",
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "test": "tsx src/extraction/scripts/test-extraction.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "better-sqlite3": "^11.0.0",
+        "csv-parse": "^5.5.0",
+        "drizzle-orm": "^0.30.0",
+        "pdf-parse": "^1.1.1"
+    },
+    "devDependencies": {
+        "@types/better-sqlite3": "^7.6.0",
+        "@types/node": "^20.0.0",
+        "@types/pdf-parse": "^1.1.0",
+        "drizzle-kit": "^0.20.0",
+        "tsx": "^4.0.0",
+        "typescript": "^5.0.0"
+    }
+}
