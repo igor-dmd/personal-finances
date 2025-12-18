@@ -7,6 +7,7 @@ export interface TransactionDraft {
 
 export interface BillParser {
     name: string;
+    identifier: string;
     supports(filename: string, content: Buffer): boolean;
     parse(content: Buffer): Promise<TransactionDraft[]>;
 }
