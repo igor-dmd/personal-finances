@@ -3,25 +3,46 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
+import Database from 'better-sqlite3';
 
 const execAsync = promisify(exec);
 const CLI_PATH = path.join(__dirname, '../../src/index.ts');
 const DUMMY_FILE = path.join(__dirname, 'fixtures/dummy_nubank.csv');
+const TEST_DB = 'test.db';
 
 describe('CLI Functional Test', () => {
 
-    it('should process the dummy csv file via CLI', async () => {
-        // Using npx tsx to run the typescript file directly
-        const command = `npx tsx ${CLI_PATH} process-file ${DUMMY_FILE} nubank-cc-bill-csv`;
+    beforeAll(() => {
+        // Ensure clean state
+        if (fs.existsSync(TEST_DB)) {
+            fs.unlinkSync(TEST_DB);
+        }
 
+    });
+
+    afterAll(() => {
+        if (fs.existsSync(TEST_DB)) {
+            fs.unlinkSync(TEST_DB);
+        }
+    });
+
+    it('should process the dummy csv file and save to DB', async () => {
+        // 1. Run Migrations on Test DB
+        await execAsync(`DATABASE_URL=${TEST_DB} npm run db:migrate`);
+
+        // 2. Run CLI
+        const command = `DATABASE_URL=${TEST_DB} npx tsx ${CLI_PATH} process-file ${DUMMY_FILE} nubank-cc-bill-csv`;
         const { stdout, stderr } = await execAsync(command);
 
         expect(stderr).toBe('');
-        expect(stdout).toContain('Processing file:');
-        expect(stdout).toContain('Transactions extracted:');
-        expect(stdout).toContain('"amount": 12');
-        expect(stdout).toContain('"description": "Super Express"');
-        expect(stdout).toContain('"amount": 302.07');
-        expect(stdout).toContain('"description": "Posto Reis Magos"');
-    }, 10000); // increase timeout for cli execution
+        expect(stdout).toContain('Transactions saved successfully');
+
+        // 3. Verify DB Content
+        const db = new Database(TEST_DB);
+        const row: any = db.prepare("SELECT count(*) as count FROM transactions").get();
+        expect(row.count).toBe(3); // 3 rows in dummy file
+
+        // Clean up
+        db.close();
+    }, 20000);
 });

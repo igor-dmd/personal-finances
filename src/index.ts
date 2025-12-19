@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
 import { ExtractionProcessor } from './extraction/processor';
+import { FinanceRepository } from './db/repository';
 
 const program = new Command();
 
@@ -23,9 +24,23 @@ program
 
             const content = fs.readFileSync(filepath);
             const processor = new ExtractionProcessor();
+            const repo = new FinanceRepository();
 
+            console.log('Extracting transactions...');
             const transactions = await processor.processByType(filepath, content, type);
-            console.log('Transactions extracted:', JSON.stringify(transactions, null, 2));
+            console.log(`Extracted ${transactions.length} transactions.`);
+
+            console.log('Saving to database...');
+            // For now, we hardcode the account based on the type or just use a default "Nubank"
+            const accountName = 'Nubank Credit Card';
+            const account = await repo.getOrCreateAccount(accountName, 'credit_card');
+
+            const job = await repo.createImportJob(filepath, 'pending');
+
+            await repo.saveTransactions(transactions, account.id, job.id);
+            await repo.updateImportJobStatus(job.id, 'completed');
+
+            console.log('Transactions saved successfully.');
 
         } catch (error: any) {
             console.error('Error processing file:', error.message);
@@ -34,5 +49,3 @@ program
     });
 
 program.parse(process.argv);
-
-// console.log("Personal Finances App Backend Started"); // Removed or moved to a specific 'start' command if we wanted a server mode.
