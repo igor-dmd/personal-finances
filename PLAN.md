@@ -18,7 +18,12 @@ The project is built using a modern TypeScript stack focusing on type safety and
     -   *Rationale*: Lightweight, type-safe, and has great DX with migration generation (`drizzle-kit`).
 -   **Parsers**:
     -   `csv-parse`: For processing CSV exports from bank accounts.
+-   **Frontend**: React (via Vite), Tailwind CSS for styling.
 -   **Dev Tools**: `tsx` (TypeScript execution), Docker (Containerization).
+
+## 3. UI Concept
+![Dashboard Mockup](docs/assets/dashboard_mockup.png)
+_Proposed design for the main dashboard showing key metrics and trends._
 
 ## 3. Development Checklist
 
@@ -35,15 +40,16 @@ The project is built using a modern TypeScript stack focusing on type safety and
 - [x] Implement CLI Command for File Processing (`src/index.ts`)
 
 ### Data Persistence
-- [ ] Implement Database Repository/Service for Transactions.
-- [ ] Connect Extraction logic to Database (Save parsed data).
+- [x] Implement Database Repository/Service for Transactions.
+- [x] Connect Extraction logic to Database (Save parsed data).
 
 ### Features: Web Application (Planned)
-- [ ] Set up Web Framework (Next.js or React/Vite).
-- [ ] Design System & UI Components (Tailwind/CSS).
-- [ ] Dashboard Page (Overview of finances).
-- [ ] Upload Interface (Drag & drop for bills/CSVs).
-- [ ] Transaction List View.
+- [x] Bootstap Frontend Project (`frontend/` directory).
+- [x] Set up Tailwind CSS.
+- [x] Implement Dashboard Layout (Sidebar + Main Content).
+- [x] Build Dashboard Stats Cards (Balance, Income, Expense).
+- [x] Build Recent Transactions Table.
+- [ ] Connect Frontend to Backend (API setup).
 
 ### Next Steps
 1.  Verify the end-to-end flow of parsing a file and inspecting the output (via CLI).
