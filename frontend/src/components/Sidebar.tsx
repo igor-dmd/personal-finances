@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface SidebarProps {
     activeItem?: string;
@@ -6,10 +7,9 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeItem = 'Dashboard' }) => {
     const navItems = [
-        { name: 'Dashboard', icon: '📊' },
-        { name: 'Transactions', icon: '💳' },
-        { name: 'Import', icon: '📥' },
-        { name: 'Settings', icon: '⚙️' },
+        { name: 'Transactions', icon: '💳', path: '/' },
+        { name: 'Import', icon: '📥', path: '/import' },
+        { name: 'Settings', icon: '⚙️', path: '/settings' },
     ];
 
     return (
@@ -20,17 +20,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeItem = 'Dashboard' }) =>
 
             <nav className="flex-1 px-3 space-y-1">
                 {navItems.map((item) => (
-                    <a
+                    <Link
                         key={item.name}
-                        href="#"
+                        to={item.path}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeItem === item.name
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
                     >
                         <span>{item.icon}</span>
                         {item.name}
-                    </a>
+                    </Link>
                 ))}
             </nav>
 
