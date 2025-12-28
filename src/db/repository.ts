@@ -1,5 +1,5 @@
 import { db } from './index';
-import { accounts, importJobs, transactions } from './schema';
+import { accounts, importJobs, transactions, categories } from './schema';
 import { eq } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
@@ -13,9 +13,25 @@ export class FinanceRepository {
         return result;
     }
 
-    async createImportJob(filename: string, status: string) {
-        const result = await db.insert(importJobs).values({ filename, status }).returning().get();
+    async createImportJob(filename: string, status: string, referenceDate?: string) {
+        const result = await db.insert(importJobs).values({ filename, status, referenceDate }).returning().get();
         return result;
+    }
+
+    async getTransactions() {
+        return await db.select({
+            id: transactions.id,
+            date: transactions.date,
+            amount: transactions.amount,
+            description: transactions.description,
+            originalDescription: transactions.originalDescription,
+            accountName: accounts.name,
+            categoryName: categories.name,
+        })
+            .from(transactions)
+            .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+            .leftJoin(categories, eq(transactions.categoryId, categories.id))
+            .all();
     }
 
     async updateImportJobStatus(id: number, status: string) {

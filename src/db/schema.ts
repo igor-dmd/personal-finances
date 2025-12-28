@@ -8,16 +8,17 @@ export const accounts = sqliteTable('accounts', {
     currency: text('currency').default('USD').notNull(),
 });
 
-export const categories = sqliteTable('categories', {
+export const categories: any = sqliteTable('categories', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     name: text('name').notNull(),
-    parentId: integer('parent_id').references(() => categories.id),
+    parentId: integer('parent_id').references((): any => categories.id),
 });
 
 export const importJobs = sqliteTable('import_jobs', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     filename: text('filename').notNull(),
     status: text('status').notNull(), // 'pending', 'completed', 'failed'
+    referenceDate: text('reference_date'), // e.g. '2023-12'
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

@@ -6,8 +6,6 @@ export class ExtractionProcessor {
         new CsvBankParser(),
     ];
 
-
-
     async processByType(filename: string, content: Buffer, type: string): Promise<TransactionDraft[]> {
         const parser = this.parsers.find(p => p.identifier === type);
         if (!parser) {

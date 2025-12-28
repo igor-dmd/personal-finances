@@ -49,9 +49,10 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Implement Dashboard Layout (Sidebar + Main Content).
 - [x] Build Dashboard Stats Cards (Balance, Income, Expense).
 - [x] Build Recent Transactions Table.
-- [ ] Connect Frontend to Backend (API setup).
+- [x] Connect Frontend to Backend (API setup).
+- [ ] Implement advanced filtering & search in API.
 
 ### Next Steps
-1.  Verify the end-to-end flow of parsing a file and inspecting the output (via CLI).
-2.  Implement the persistence layer to save these parsed transactions to SQLite.
-3.  Bootstrap the frontend application.
+1.  Verify the end-to-end flow of parsing a file via the API.
+2.  Integrate the frontend dashboard with the `/transactions` GET route.
+3.  Add file upload capability to the frontend.
