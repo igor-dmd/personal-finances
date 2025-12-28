@@ -41,6 +41,12 @@ transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) 
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // Check for duplicates
+        const existingJob = await repo.getCompletedImportJob(type, referenceDate);
+        if (existingJob) {
+            return c.json({ error: 'A file of this type has already been imported for this month/year.' }, 409);
+        }
+
         // Process the file
         const drafts = await processor.processByType(file.name, buffer, type);
         console.log(`[API] Extracted ${drafts.length} transactions`);
@@ -49,7 +55,7 @@ transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) 
         // TODO: Dynamically handle accounts. For now, default to Nubank.
         const accountName = 'Nubank Credit Card';
         const account = await repo.getOrCreateAccount(accountName, 'credit_card');
-        const job = await repo.createImportJob(file.name, 'pending', referenceDate);
+        const job = await repo.createImportJob(file.name, 'pending', type, referenceDate);
 
         await repo.saveTransactions(drafts, account.id, job.id);
         await repo.updateImportJobStatus(job.id, 'completed');

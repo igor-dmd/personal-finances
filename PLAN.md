@@ -53,6 +53,5 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [ ] Implement advanced filtering & search in API.
 
 ### Next Steps
-1.  Verify the end-to-end flow of parsing a file via the API.
-2.  Integrate the frontend dashboard with the `/transactions` GET route.
-3.  Add file upload capability to the frontend.
+1.  Implement advanced filtering & search in API and Frontend.
+2.  Add support for more file types (e.g. other banks).

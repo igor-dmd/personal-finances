@@ -35,7 +35,7 @@ program
             const accountName = 'Nubank Credit Card';
             const account = await repo.getOrCreateAccount(accountName, 'credit_card');
 
-            const job = await repo.createImportJob(filepath, 'pending');
+            const job = await repo.createImportJob(filepath, 'pending', type);
 
             await repo.saveTransactions(transactions, account.id, job.id);
             await repo.updateImportJobStatus(job.id, 'completed');

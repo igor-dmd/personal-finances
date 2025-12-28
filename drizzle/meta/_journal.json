@@ -15,6 +15,13 @@
       "when": 1766879617451,
       "tag": "0001_clammy_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1766885097487,
+      "tag": "0002_cool_hellion",
+      "breakpoints": true
     }
   ]
 }

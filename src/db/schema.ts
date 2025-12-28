@@ -17,6 +17,7 @@ export const categories: any = sqliteTable('categories', {
 export const importJobs = sqliteTable('import_jobs', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     filename: text('filename').notNull(),
+    type: text('type').notNull(), // 'nubank-bill-csv', etc
     status: text('status').notNull(), // 'pending', 'completed', 'failed'
     referenceDate: text('reference_date'), // e.g. '2023-12'
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`).notNull(),

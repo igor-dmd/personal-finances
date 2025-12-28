@@ -1,6 +1,6 @@
 import { db } from './index';
 import { accounts, importJobs, transactions, categories } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
 export class FinanceRepository {
@@ -13,9 +13,21 @@ export class FinanceRepository {
         return result;
     }
 
-    async createImportJob(filename: string, status: string, referenceDate?: string) {
-        const result = await db.insert(importJobs).values({ filename, status, referenceDate }).returning().get();
+    async createImportJob(filename: string, status: string, type: string, referenceDate?: string) {
+        const result = await db.insert(importJobs).values({ filename, status, type, referenceDate }).returning().get();
         return result;
+    }
+
+    async getCompletedImportJob(type: string, referenceDate: string) {
+        return await db.select()
+            .from(importJobs)
+            .where(
+                and(
+                    eq(importJobs.type, type),
+                    eq(importJobs.referenceDate, referenceDate),
+                    eq(importJobs.status, 'completed')
+                )
+            ).get();
     }
 
     async getTransactions() {

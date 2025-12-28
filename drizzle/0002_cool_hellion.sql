@@ -1,0 +1,1 @@
+ALTER TABLE import_jobs ADD `type` text NOT NULL;
