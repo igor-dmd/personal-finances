@@ -22,6 +22,13 @@
       "when": 1766885097487,
       "tag": "0002_cool_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1766886594640,
+      "tag": "0003_abandoned_talos",
+      "breakpoints": true
     }
   ]
 }

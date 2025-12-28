@@ -4,6 +4,7 @@
 The goal is to build a **Personal Finances Web Application** that helps users track their financial health.
 Key use cases include:
 -   **Automated Data Ingestion**: Extracting transaction data from various source formats (CSV bank exports) to minimize manual entry.
+    -   *Update*: Removed "one import per referenceDate" constraint to allow more flexibility.
 -   **Transaction Management**: Viewing, categorizing, and managing financial transactions.
 -   **Insights & Reporting**: (Future) Visualizing spending habits and trends.
 

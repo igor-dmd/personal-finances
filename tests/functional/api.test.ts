@@ -103,7 +103,7 @@ describe('API Functional Tests', () => {
 
         formData.append('file', blob, 'statement.csv');
         formData.append('type', 'nubank-cc-bill-csv');
-        formData.append('referenceDate', '2023-12');
+
 
         const res = await app.request('/transactions/upload', {
             method: 'POST',
@@ -129,7 +129,7 @@ describe('API Functional Tests', () => {
     it('POST /transactions/upload should return 400 for invalid file', async () => {
         const formData = new FormData();
         formData.append('type', 'nubank-cc-bill-csv');
-        formData.append('referenceDate', '2023-12');
+
         // No file appended
 
         const res = await app.request('/transactions/upload', {

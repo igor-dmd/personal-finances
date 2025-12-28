@@ -11,7 +11,6 @@ const processor = new ExtractionProcessor();
 // Schema for upload validation
 const uploadSchema = z.object({
     type: z.string().min(1, 'Type is required'),
-    referenceDate: z.string().regex(/^\d{4}-\d{2}$/, 'Reference date must be in YYYY-MM format'),
 });
 
 transactions.get('/', async (c) => {
@@ -35,17 +34,16 @@ transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) 
             return c.json({ error: 'No file provided or invalid file format' }, 400);
         }
 
-        const { type, referenceDate } = c.req.valid('form') as z.infer<typeof uploadSchema>;
-        console.log(`[API] File: ${file.name}, Type: ${type}, Ref: ${referenceDate}`);
+        const { type } = c.req.valid('form') as z.infer<typeof uploadSchema>;
+        console.log(`[API] File: ${file.name}, Type: ${type}`);
 
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
         // Check for duplicates
-        const existingJob = await repo.getCompletedImportJob(type, referenceDate);
-        if (existingJob) {
-            return c.json({ error: 'A file of this type has already been imported for this month/year.' }, 409);
-        }
+        // Check for duplicates
+        // Removed referenceDate constraint
+
 
         // Process the file
         const drafts = await processor.processByType(file.name, buffer, type);
@@ -55,7 +53,7 @@ transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) 
         // TODO: Dynamically handle accounts. For now, default to Nubank.
         const accountName = 'Nubank Credit Card';
         const account = await repo.getOrCreateAccount(accountName, 'credit_card');
-        const job = await repo.createImportJob(file.name, 'pending', type, referenceDate);
+        const job = await repo.createImportJob(file.name, 'pending', type);
 
         await repo.saveTransactions(drafts, account.id, job.id);
         await repo.updateImportJobStatus(job.id, 'completed');

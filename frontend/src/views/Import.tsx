@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 
 export const Import: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
-    const [month, setMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
     const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
     const [message, setMessage] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,7 +41,7 @@ export const Import: React.FC = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'nubank-cc-bill-csv');
-        formData.append('referenceDate', month);
+        formData.append('type', 'nubank-cc-bill-csv');
 
         try {
             const response = await fetch('http://localhost:3000/transactions/upload', {
@@ -89,16 +88,6 @@ export const Import: React.FC = () => {
                             <p className="text-xs text-slate-500">Currently only Nubank CSV exports are supported.</p>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Reference Period</label>
-                            <input
-                                type="month"
-                                value={month}
-                                onChange={(e) => setMonth(e.target.value)}
-                                className="w-full bg-white border border-slate-300 text-slate-900 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                required
-                            />
-                        </div>
                     </div>
 
                     {/* File Upload Section */}

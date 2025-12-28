@@ -13,22 +13,12 @@ export class FinanceRepository {
         return result;
     }
 
-    async createImportJob(filename: string, status: string, type: string, referenceDate?: string) {
-        const result = await db.insert(importJobs).values({ filename, status, type, referenceDate }).returning().get();
+    async createImportJob(filename: string, status: string, type: string) {
+        const result = await db.insert(importJobs).values({ filename, status, type }).returning().get();
         return result;
     }
 
-    async getCompletedImportJob(type: string, referenceDate: string) {
-        return await db.select()
-            .from(importJobs)
-            .where(
-                and(
-                    eq(importJobs.type, type),
-                    eq(importJobs.referenceDate, referenceDate),
-                    eq(importJobs.status, 'completed')
-                )
-            ).get();
-    }
+
 
     async getTransactions() {
         return await db.select({

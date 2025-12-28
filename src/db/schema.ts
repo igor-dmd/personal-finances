@@ -19,7 +19,7 @@ export const importJobs = sqliteTable('import_jobs', {
     filename: text('filename').notNull(),
     type: text('type').notNull(), // 'nubank-bill-csv', etc
     status: text('status').notNull(), // 'pending', 'completed', 'failed'
-    referenceDate: text('reference_date'), // e.g. '2023-12'
+    // referenceDate field removed
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
