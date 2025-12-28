@@ -25,7 +25,7 @@ transactions.get('/', async (c) => {
     }
 });
 
-transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
+transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) => {
     try {
         console.log('[API] Processing upload request...');
         const body = await c.req.parseBody();
@@ -35,7 +35,7 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
             return c.json({ error: 'No file provided or invalid file format' }, 400);
         }
 
-        const { type, referenceDate } = c.req.valid('form');
+        const { type, referenceDate } = c.req.valid('form') as z.infer<typeof uploadSchema>;
         console.log(`[API] File: ${file.name}, Type: ${type}, Ref: ${referenceDate}`);
 
         const arrayBuffer = await file.arrayBuffer();
