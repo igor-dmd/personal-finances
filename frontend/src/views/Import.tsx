@@ -41,7 +41,7 @@ export const Import: React.FC = () => {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', 'nubank-bill-csv');
+        formData.append('type', 'nubank-cc-bill-csv');
         formData.append('referenceDate', month);
 
         try {
@@ -106,8 +106,8 @@ export const Import: React.FC = () => {
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
                         className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200 cursor-pointer ${file
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
                             }`}
                         onClick={() => fileInputRef.current?.click()}
                     >
@@ -144,8 +144,8 @@ export const Import: React.FC = () => {
                         <div className="flex-1 mr-4">
                             {message && (
                                 <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${status === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                        status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
-                                            'bg-blue-50 text-blue-700 border border-blue-200'
+                                    status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                        'bg-blue-50 text-blue-700 border border-blue-200'
                                     }`}>
                                     {status === 'success' && '✅'}
                                     {status === 'error' && '⚠️'}
@@ -159,8 +159,8 @@ export const Import: React.FC = () => {
                             type="submit"
                             disabled={!file || status === 'uploading'}
                             className={`px-8 py-3 rounded-lg font-medium text-white transition-all transform hover:scale-105 active:scale-95 ${!file || status === 'uploading'
-                                    ? 'bg-slate-400 cursor-not-allowed opacity-75'
-                                    : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20'
+                                ? 'bg-slate-400 cursor-not-allowed opacity-75'
+                                : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20'
                                 }`}
                         >
                             {status === 'uploading' ? 'Importing...' : 'Confirm Import'}
