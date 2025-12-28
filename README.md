@@ -36,7 +36,18 @@ The backend serves the API and handles database interactions.
     npm run db:migrate
     ```
 
-3.  **Run the Backend Server**:
+3.  **Database Seeding (Optional)**:
+    Populate the database with sample data for development:
+    ```bash
+    npm run db:seed
+    ```
+
+    To empty the database:
+    ```bash
+    npm run db:reset
+    ```
+
+5.  **Run the Backend Server**:
     Start the development server (runs on port 3000 by default):
     ```bash
     npm run api:dev
