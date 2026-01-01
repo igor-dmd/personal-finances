@@ -1,5 +1,6 @@
 import React from 'react';
 import { TransactionTable } from '../components/TransactionTable';
+import { formatDate } from '../utils/date';
 
 export const Transactions: React.FC = () => {
     const [transactions, setTransactions] = React.useState<any[]>([]);
@@ -16,7 +17,7 @@ export const Transactions: React.FC = () => {
                 // Map API data to component expectations
                 const formatted = data.map((t: any) => ({
                     id: t.id,
-                    date: new Date(t.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    date: formatDate(t.date),
                     description: t.description,
                     category: t.categoryName || 'Uncategorized',
                     amount: t.amount

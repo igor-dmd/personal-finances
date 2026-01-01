@@ -49,12 +49,15 @@ describe('Import Component', () => {
             json: async () => mockJobs
         });
 
-        // Mock window.confirm
-        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-
         render(<Import />);
 
         const revertBtn = await screen.findByText('Revert');
+
+        // Click Revert to show inline confirmation
+        fireEvent.click(revertBtn);
+
+        // Now find the Confirm button
+        const confirmBtn = await screen.findByText('Confirm');
 
         // Mock successful delete
         (globalThis.fetch as any).mockResolvedValueOnce({
@@ -68,9 +71,7 @@ describe('Import Component', () => {
             json: async () => []
         });
 
-        fireEvent.click(revertBtn);
-
-        expect(confirmSpy).toHaveBeenCalled();
+        fireEvent.click(confirmBtn);
 
         await waitFor(() => {
             expect(screen.getByText(/Import reverted successfully/i)).toBeInTheDocument();
