@@ -1,6 +1,6 @@
 
 import { db } from '../db';
-import { accounts, categories, transactions } from '../db/schema';
+import { accounts, categories, transactions, importJobs } from '../db/schema';
 
 async function seed() {
     console.log('Seeding database...');
@@ -28,10 +28,17 @@ async function seed() {
             { name: 'Health' }
         ];
 
-        const insertedCategories = await db.insert(categories).values(categoryData).returning();
+        const insertedCategories: any = await db.insert(categories).values(categoryData).returning();
         const categoryMap = new Map<string, number>(insertedCategories.map((c: { name: string; id: number }) => [c.name, c.id]));
 
         console.log('Created categories:', insertedCategories.length);
+
+        // Create an import job for the seeds
+        const [importJob]: any = await db.insert(importJobs).values({
+            filename: 'seed_data.csv',
+            type: 'nubank-bill-csv',
+            status: 'completed'
+        }).returning();
 
         // Create transactions
         const transactionData = [
@@ -50,11 +57,12 @@ async function seed() {
         await db.insert(transactions).values(transactionData.map(t => ({
             accountId: account.id,
             categoryId: categoryMap.get(t.category) ?? null,
+            importJobId: importJob.id,
             date: t.date,
             amount: t.amount,
             description: t.description,
             originalDescription: t.description
-        })));
+        }))).run();
 
         console.log('Created transactions:', transactionData.length);
         console.log('Seeding completed successfully.');

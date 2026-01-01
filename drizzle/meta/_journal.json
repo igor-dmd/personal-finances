@@ -29,6 +29,13 @@
       "when": 1766886594640,
       "tag": "0003_abandoned_talos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1767297415278,
+      "tag": "0004_warm_norrin_radd",
+      "breakpoints": true
     }
   ]
 }

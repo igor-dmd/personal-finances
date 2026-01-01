@@ -81,16 +81,31 @@ The frontend provides the user interface for managing transactions.
 
 ## 🧪 Running Tests
 
-The project includes functional tests for both the CLI and the API.
+The project includes automated tests for both the backend and frontend using [Vitest](https://vitest.dev/).
 
-To run the tests, execute the following command in the **root** directory:
+### Backend Tests
+To run functional tests for the CLI and API, execute the following command in the **root** directory:
 ```bash
 npm test
 ```
-
-This commands runs `vitest` which will execute:
+This will run:
 -   **CLI Tests**: `tests/functional/cli.test.ts`
 -   **API Tests**: `tests/functional/api.test.ts`
+-   **Import Jobs Tests**: `tests/functional/import-jobs.test.ts`
+
+### Frontend Tests
+To run component tests for the React application, navigate to the `frontend/` directory and run:
+```bash
+cd frontend
+npm test
+```
+Or use the direct vitest command:
+```bash
+cd frontend
+npx vitest
+```
+Tests include:
+-   **Import Page Tests**: `frontend/src/views/Import.test.tsx`
 
 ---
 

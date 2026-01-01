@@ -6,6 +6,7 @@ Key use cases include:
 -   **Automated Data Ingestion**: Extracting transaction data from various source formats (CSV bank exports) to minimize manual entry.
     -   *Update*: Removed "one import per referenceDate" constraint to allow more flexibility.
 -   **Transaction Management**: Viewing, categorizing, and managing financial transactions.
+-   **Import Management**: Tracking import history and reverting accidental imports.
 -   **Insights & Reporting**: (Future) Visualizing spending habits and trends.
 
 ## 2. Technology Stack & Rationale
@@ -52,6 +53,8 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Build Recent Transactions Table.
 - [x] Connect Frontend to Backend (API setup).
 - [ ] Implement advanced filtering & search in API.
+- [x] Implement Import Jobs Management (List & Delete/Revert).
+- [x] Frontend: Import Jobs History Component.
 
 ### Next Steps
 1.  Implement advanced filtering & search in API and Frontend.

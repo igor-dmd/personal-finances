@@ -5,4 +5,5 @@ import * as schema from './schema';
 // In a real app, the DB path would be from env vars
 const dbPath = process.env.DATABASE_URL || 'sqlite.db';
 const sqlite = new Database(dbPath);
+sqlite.pragma('foreign_keys = ON'); // Enable foreign key constraints
 export const db = drizzle(sqlite, { schema });

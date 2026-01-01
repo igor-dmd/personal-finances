@@ -27,7 +27,7 @@ export const transactions = sqliteTable('transactions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     accountId: integer('account_id').references(() => accounts.id).notNull(),
     categoryId: integer('category_id').references(() => categories.id),
-    importJobId: integer('import_job_id').references(() => importJobs.id),
+    importJobId: integer('import_job_id').references(() => importJobs.id, { onDelete: 'cascade' }),
     date: integer('date', { mode: 'timestamp' }).notNull(),
     amount: real('amount').notNull(),
     description: text('description').notNull(),

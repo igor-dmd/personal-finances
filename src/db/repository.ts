@@ -1,6 +1,6 @@
 import { db } from './index';
 import { accounts, importJobs, transactions, categories } from './schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
 export class FinanceRepository {
@@ -16,6 +16,16 @@ export class FinanceRepository {
     async createImportJob(filename: string, status: string, type: string) {
         const result = await db.insert(importJobs).values({ filename, status, type }).returning().get();
         return result;
+    }
+
+    async getImportJobs() {
+        return await db.select().from(importJobs).orderBy(sql`id DESC`).all();
+    }
+
+    async deleteImportJob(id: number) {
+        // Manually delete transactions first as a fallback for SQLite cascade issues
+        await db.delete(transactions).where(eq(transactions.importJobId, id)).run();
+        await db.delete(importJobs).where(eq(importJobs.id, id)).run();
     }
 
 
