@@ -33,12 +33,24 @@ async function seed() {
 
         console.log('Created categories:', insertedCategories.length);
 
-        // Create an import job for the seeds
-        const [importJob]: any = await db.insert(importJobs).values({
-            filename: 'seed_data.csv',
-            type: 'nubank-bill-csv',
-            status: 'completed'
-        }).returning();
+        // Create some import jobs for history
+        const importJobsData = [
+            {
+                filename: 'nubank_may_2025.csv',
+                type: 'nubank-cc-bill-csv',
+                status: 'completed',
+                createdAt: new Date('2025-05-24T10:00:00Z')
+            },
+            {
+                filename: 'checking_may_2025.csv',
+                type: 'bank-csv',
+                status: 'completed',
+                createdAt: new Date('2025-05-15T14:30:00Z')
+            }
+        ];
+
+        const insertedImportJobs: any = await db.insert(importJobs).values(importJobsData).returning();
+        const importJob = insertedImportJobs[0];
 
         // Create transactions
         const transactionData = [

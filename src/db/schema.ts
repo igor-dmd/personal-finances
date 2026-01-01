@@ -20,7 +20,7 @@ export const importJobs = sqliteTable('import_jobs', {
     type: text('type').notNull(), // 'nubank-bill-csv', etc
     status: text('status').notNull(), // 'pending', 'completed', 'failed'
     // referenceDate field removed
-    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
 export const transactions = sqliteTable('transactions', {

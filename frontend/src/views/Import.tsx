@@ -14,7 +14,30 @@ export const Import: React.FC = () => {
     const [message, setMessage] = useState<string>('');
     const [jobs, setJobs] = useState<ImportJob[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+    const [confirmingId, setConfirmingId] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const historyRef = useRef<HTMLDivElement>(null);
+
+    const formatDate = (dateValue: any) => {
+        if (!dateValue) return 'N/A';
+        let date: Date;
+
+        if (typeof dateValue === 'number' || (typeof dateValue === 'string' && /^\d+$/.test(dateValue))) {
+            const num = Number(dateValue);
+            // If the number is smaller than 10^11, it's likely seconds (10^11 ms is ~1973, 10^11 s is way in the future)
+            // A safer check: if it's < 10,000,000,000 it's definitely seconds (before year 2286).
+            if (num < 10000000000) {
+                date = new Date(num * 1000);
+            } else {
+                date = new Date(num);
+            }
+        } else {
+            date = new Date(dateValue);
+        }
+
+        if (isNaN(date.getTime())) return 'Invalid Date';
+        return date.toLocaleString();
+    };
 
     const fetchJobs = async () => {
         setIsLoadingJobs(true);
@@ -70,7 +93,6 @@ export const Import: React.FC = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'nubank-cc-bill-csv');
-        formData.append('type', 'nubank-cc-bill-csv');
 
         try {
             const response = await fetch('http://localhost:3000/transactions/upload', {
@@ -97,9 +119,10 @@ export const Import: React.FC = () => {
     };
 
     const handleDeleteJob = async (id: number) => {
-        if (!window.confirm('Are you sure you want to revert this import? All associated transactions will be deleted.')) {
-            return;
-        }
+        console.log(`[Import] Sending DELETE request for job ${id}`);
+        setStatus('uploading');
+        setMessage('Reverting import...');
+        setConfirmingId(null);
 
         try {
             const response = await fetch(`http://localhost:3000/import-jobs/${id}`, {
@@ -107,14 +130,17 @@ export const Import: React.FC = () => {
             });
 
             if (response.ok) {
+                console.log(`[Import] Job ${id} deleted successfully`);
                 setMessage('Import reverted successfully.');
                 setStatus('success');
                 fetchJobs();
             } else {
                 const data = await response.json();
+                console.error(`[Import] Failed to delete job ${id}:`, data.error);
                 throw new Error(data.error || 'Failed to delete job');
             }
         } catch (error: any) {
+            console.error(`[Import] Error in handleDeleteJob for ${id}:`, error);
             setMessage(error.message);
             setStatus('error');
         }
@@ -122,13 +148,21 @@ export const Import: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <header className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Import Transactions</h1>
-                <p className="text-slate-500">Upload your bank statements to track your finances.</p>
+            <header className="mb-8 flex justify-between items-end">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Import Transactions</h1>
+                    <p className="text-slate-500">Upload your bank statements to track your finances.</p>
+                </div>
+                <button
+                    onClick={() => historyRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 transition-colors"
+                >
+                    View History ↓
+                </button>
             </header>
 
-            <div className="bg-white rounded-xl p-8 border border-slate-200 shadow-sm">
-                <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Configuration Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
@@ -148,7 +182,7 @@ export const Import: React.FC = () => {
                     <div
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
-                        className={`border-2 border-dashed rounded-xl p-10 text-center transition-all duration-200 cursor-pointer ${file
+                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${file
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
                             }`}
@@ -213,7 +247,7 @@ export const Import: React.FC = () => {
             </div>
 
             {/* Import History Table */}
-            <div className="mt-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div ref={historyRef} className="mt-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h2 className="text-xl font-semibold text-slate-900">Import History</h2>
                     {isLoadingJobs && <span className="text-sm text-slate-500 animate-pulse">Refreshing...</span>}
@@ -246,7 +280,7 @@ export const Import: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-500">
-                                            {new Date(job.createdAt).toLocaleString()}
+                                            {formatDate(job.createdAt)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${job.status === 'completed' ? 'bg-green-50 text-green-700 border border-green-100' :
@@ -257,13 +291,30 @@ export const Import: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => handleDeleteJob(job.id)}
-                                                className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                                                title="Revert Import"
-                                            >
-                                                Revert
-                                            </button>
+                                            {confirmingId === job.id ? (
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleDeleteJob(job.id)}
+                                                        className="text-red-600 hover:text-red-800 font-bold text-sm bg-red-50 px-2 py-1 rounded border border-red-200"
+                                                    >
+                                                        Confirm
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmingId(null)}
+                                                        className="text-slate-500 hover:text-slate-700 font-medium text-sm px-2 py-1"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setConfirmingId(job.id)}
+                                                    className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
+                                                    title="Revert Import"
+                                                >
+                                                    Revert
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
