@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface Transaction {
+export interface DisplayTransaction {
     id: number;
     date: string;
     description: string;
@@ -9,7 +9,7 @@ interface Transaction {
 }
 
 interface TransactionTableProps {
-    transactions: Transaction[];
+    transactions: DisplayTransaction[];
 }
 
 export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions }) => {

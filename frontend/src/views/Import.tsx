@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { formatDate } from '../utils/date';
 
-interface ImportJob {
+export interface ImportJob {
     id: number;
     filename: string;
     type: string;

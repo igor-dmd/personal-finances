@@ -1,21 +1,21 @@
 import React from 'react';
-import { TransactionTable } from '../components/TransactionTable';
+import { TransactionTable, type DisplayTransaction } from '../components/TransactionTable';
 import { formatDate } from '../utils/date';
+import { api } from '../lib/api';
+import type { Transaction } from '../lib/api';
 
 export const Transactions: React.FC = () => {
-    const [transactions, setTransactions] = React.useState<any[]>([]);
+    const [transactions, setTransactions] = React.useState<DisplayTransaction[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         const loadTransactions = async () => {
             try {
-                const response = await fetch('http://localhost:3000/transactions');
-                if (!response.ok) throw new Error('Failed to fetch');
-                const data = await response.json();
+                const data = await api.getTransactions();
 
                 // Map API data to component expectations
-                const formatted = data.map((t: any) => ({
+                const formatted = data.map((t: Transaction) => ({
                     id: t.id,
                     date: formatDate(t.date),
                     description: t.description,

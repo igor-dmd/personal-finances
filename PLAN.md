@@ -56,6 +56,9 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Implement Import Jobs Management (List & Delete/Revert).
 - [x] Frontend: Import Jobs History Component.
 
+### Health & Maintenance
+- [x] Improve frontend type safety (Replace 'any' with models).
+
 ### Next Steps
 1.  Implement advanced filtering & search in API and Frontend.
 2.  Add support for more file types (e.g. other banks).

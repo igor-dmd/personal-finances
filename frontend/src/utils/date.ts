@@ -2,7 +2,7 @@
  * Formats a date value (string, number, or Date) into a human-readable string.
  * Handles both unix timestamps (seconds) and milliseconds.
  */
-export const formatDate = (dateValue: any) => {
+export const formatDate = (dateValue: string | number | Date | null | undefined) => {
     if (!dateValue) return 'N/A';
     let date: Date;
 

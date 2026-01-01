@@ -24,7 +24,7 @@ transactions.get('/', async (c) => {
     }
 });
 
-transactions.post('/upload', zValidator('form', uploadSchema as any), async (c) => {
+transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
     try {
         console.log('[API] Processing upload request...');
         const body = await c.req.parseBody();
