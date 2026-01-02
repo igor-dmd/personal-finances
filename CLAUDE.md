@@ -101,6 +101,14 @@ Key components:
 
 ## Testing Requirements
 
+### Backend
+
+- All API endpoints must have tests covering success and error cases
+- New parsers must include tests with sample fixture files in `tests/functional/fixtures/`
+- Repository methods with business logic (beyond simple CRUD) should be tested
+- Each test file must use an isolated test database (`test-<name>.db`) to avoid conflicts
+- Tests live in `tests/functional/`
+
 ### Frontend
 
 - All new components must have corresponding test files (`ComponentName.test.tsx`)
