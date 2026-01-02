@@ -30,6 +30,14 @@ export class FinanceRepository {
 
 
 
+    async getCategories() {
+        return await db.select().from(categories).all();
+    }
+
+    async updateTransaction(id: number, data: Partial<typeof transactions.$inferInsert>) {
+        return await db.update(transactions).set(data).where(eq(transactions.id, id)).run();
+    }
+
     async getTransactions() {
         return await db.select({
             id: transactions.id,
@@ -38,6 +46,7 @@ export class FinanceRepository {
             description: transactions.description,
             originalDescription: transactions.originalDescription,
             accountName: accounts.name,
+            categoryId: transactions.categoryId,
             categoryName: categories.name,
         })
             .from(transactions)

@@ -52,16 +52,17 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Build Dashboard Stats Cards (Balance, Income, Expense).
 - [x] Build Recent Transactions Table.
 - [x] Connect Frontend to Backend (API setup).
-- [ ] Implement advanced filtering & search in API.
 - [x] Implement Import Jobs Management (List & Delete/Revert).
 - [x] Frontend: Import Jobs History Component.
+- [/] Implement Transaction Category Update (Clickable category + Save button).
 
 ### Health & Maintenance
 - [x] Improve frontend type safety (Replace 'any' with models).
 
 ### Next Steps
-1.  Implement advanced filtering & search in API and Frontend.
-2.  Add support for more file types (e.g. other banks).
+1.  Complete Transaction Category Update functionality.
+2.  Implement advanced filtering & search in API and Frontend.
+3.  Add support for more file types (e.g. other banks).
 
 ---
 *Note: Fixed a `db:migrate` error related to SQLite not supporting automatic default value changes by manually implementing the migration for the `import_jobs` table.*

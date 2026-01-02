@@ -13,6 +13,38 @@ const uploadSchema = z.object({
     type: z.string().min(1, 'Type is required'),
 });
 
+const updateTransactionSchema = z.object({
+    categoryId: z.number().nullable().optional(),
+    description: z.string().optional(),
+    amount: z.number().optional(),
+    date: z.coerce.date().optional(),
+});
+
+transactions.get('/categories', async (c) => {
+    try {
+        const data = await repo.getCategories();
+        return c.json(data);
+    } catch (error: any) {
+        console.error('[API] Error fetching categories:', error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+transactions.patch('/:id', zValidator('json', updateTransactionSchema), async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'));
+        const body = c.req.valid('json');
+
+        console.log(`[API] Updating transaction ${id}...`, body);
+        await repo.updateTransaction(id, body);
+
+        return c.json({ success: true });
+    } catch (error: any) {
+        console.error(`[API] Error updating transaction:`, error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
 transactions.get('/', async (c) => {
     try {
         console.log('[API] Fetching transactions...');
