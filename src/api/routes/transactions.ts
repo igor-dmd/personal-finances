@@ -20,12 +20,51 @@ const updateTransactionSchema = z.object({
     date: z.coerce.date().optional(),
 });
 
+const bulkUpdateCategorySchema = z.object({
+    description: z.string().min(1, 'Description is required'),
+    categoryId: z.number().nullable(),
+});
+
 transactions.get('/categories', async (c) => {
     try {
         const data = await repo.getCategories();
         return c.json(data);
     } catch (error: any) {
         console.error('[API] Error fetching categories:', error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+transactions.get('/by-description/count', async (c) => {
+    try {
+        const description = c.req.query('description');
+        if (!description) {
+            return c.json({ error: 'Description query param required' }, 400);
+        }
+
+        const count = await repo.countTransactionsByDescription(description);
+        return c.json({ count, description });
+    } catch (error: any) {
+        console.error('[API] Error counting transactions:', error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+transactions.patch('/by-description', zValidator('json', bulkUpdateCategorySchema), async (c) => {
+    try {
+        const { description, categoryId } = c.req.valid('json');
+        console.log(`[API] Bulk updating transactions with description "${description}" to category ${categoryId}`);
+
+        const result = await repo.updateTransactionsByDescription(description, categoryId);
+
+        return c.json({
+            success: true,
+            updatedCount: result.count,
+            description,
+            categoryId
+        });
+    } catch (error: any) {
+        console.error('[API] Error bulk updating transactions:', error);
         return c.json({ error: error.message }, 500);
     }
 });

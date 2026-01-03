@@ -85,11 +85,34 @@ export class FinanceRepository {
             originalDescription: draft.originalDescription,
         }));
 
-        // Batch insert could be better, but sqlite limits vars per statement. 
+        // Batch insert could be better, but sqlite limits vars per statement.
         // For small batches, simple insert is fine.
         // We will insert one by one or in small batches.
         if (txs.length === 0) return;
 
         await db.insert(transactions).values(txs).run();
+    }
+
+    async countTransactionsByDescription(description: string): Promise<number> {
+        const result = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(transactions)
+            .where(eq(transactions.description, description))
+            .get();
+
+        return result?.count || 0;
+    }
+
+    async updateTransactionsByDescription(
+        description: string,
+        categoryId: number | null
+    ): Promise<{ count: number }> {
+        const result = await db
+            .update(transactions)
+            .set({ categoryId })
+            .where(eq(transactions.description, description))
+            .run();
+
+        return { count: result.changes };
     }
 }

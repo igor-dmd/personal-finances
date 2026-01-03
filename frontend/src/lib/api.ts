@@ -85,5 +85,30 @@ export const api = {
             throw new Error('Failed to update transaction');
         }
         return response.json();
+    },
+
+    getTransactionCountByDescription: async (description: string): Promise<{ count: number; description: string }> => {
+        const response = await fetch(
+            `${API_URL}/transactions/by-description/count?description=${encodeURIComponent(description)}`
+        );
+        if (!response.ok) {
+            throw new Error('Failed to get transaction count');
+        }
+        return response.json();
+    },
+
+    bulkUpdateCategory: async (
+        description: string,
+        categoryId: number | null
+    ): Promise<{ success: boolean; updatedCount: number }> => {
+        const response = await fetch(`${API_URL}/transactions/by-description`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description, categoryId }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to bulk update categories');
+        }
+        return response.json();
     }
 };

@@ -54,7 +54,7 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Connect Frontend to Backend (API setup).
 - [x] Implement Import Jobs Management (List & Delete/Revert).
 - [x] Frontend: Import Jobs History Component.
-- [x] Implement Transaction Category Update (Clickable category + Save button).
+- [x] Implement Transaction Category Update (Inline searchable combobox with auto-save).
 - [x] Implement Categories Management (Full CRUD with dedicated page).
 
 ### Health & Maintenance

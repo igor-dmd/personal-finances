@@ -423,4 +423,122 @@ describe('API Functional Tests', () => {
             });
         });
     });
+
+    describe('Bulk Category Assignment', () => {
+        describe('GET /transactions/by-description/count', () => {
+            it('should return count of matching transactions', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                await repo.saveTransactions([
+                    { date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
+                    { date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
+                    { date: new Date(), amount: 20, description: 'Lyft', originalDescription: 'Lyft' },
+                ], account.id, job.id);
+
+                const res = await app.request('/transactions/by-description/count?description=Uber');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.count).toBe(2);
+                expect(data.description).toBe('Uber');
+            });
+
+            it('should return 400 without description param', async () => {
+                const res = await app.request('/transactions/by-description/count');
+                expect(res.status).toBe(400);
+            });
+
+            it('should return 0 for non-existent description', async () => {
+                const res = await app.request('/transactions/by-description/count?description=NonExistent');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.count).toBe(0);
+            });
+        });
+
+        describe('PATCH /transactions/by-description', () => {
+            it('should update all matching transactions', async () => {
+                const [category] = await db.insert(categories).values({ name: 'Transport' }).returning();
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                await repo.saveTransactions([
+                    { date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
+                    { date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
+                    { date: new Date(), amount: 20, description: 'Lyft', originalDescription: 'Lyft' },
+                ], account.id, job.id);
+
+                const res = await app.request('/transactions/by-description', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: 'Uber', categoryId: category.id }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+                expect(data.updatedCount).toBe(2);
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                const uberTxs = txList.filter((t: any) => t.description === 'Uber');
+                expect(uberTxs).toHaveLength(2);
+                expect(uberTxs.every((t: any) => t.categoryId === category.id)).toBe(true);
+
+                const lyftTx = txList.find((t: any) => t.description === 'Lyft');
+                expect(lyftTx.categoryId).toBeNull();
+            });
+
+            it('should allow setting category to null', async () => {
+                const [category] = await db.insert(categories).values({ name: 'Transport' }).returning();
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                await db.insert(transactions).values([
+                    { accountId: account.id, importJobId: job.id, categoryId: category.id,
+                      date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
+                    { accountId: account.id, importJobId: job.id, categoryId: category.id,
+                      date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
+                ]).run();
+
+                const res = await app.request('/transactions/by-description', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: 'Uber', categoryId: null }),
+                });
+
+                expect(res.status).toBe(200);
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                const uberTxs = txList.filter((t: any) => t.description === 'Uber');
+                expect(uberTxs.every((t: any) => t.categoryId === null)).toBe(true);
+            });
+
+            it('should return 400 for empty description', async () => {
+                const res = await app.request('/transactions/by-description', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: '', categoryId: 1 }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should return updatedCount of 0 when no transactions match', async () => {
+                const [category] = await db.insert(categories).values({ name: 'Transport' }).returning();
+
+                const res = await app.request('/transactions/by-description', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: 'NonExistent', categoryId: category.id }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+                expect(data.updatedCount).toBe(0);
+            });
+        });
+    });
 });

@@ -52,6 +52,17 @@ export const Transactions: React.FC = () => {
         }
     };
 
+    const handleBulkUpdateCategory = async (description: string, categoryId: number | null) => {
+        try {
+            await api.bulkUpdateCategory(description, categoryId);
+            // Refresh data to show updated category names
+            await loadData();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to bulk update categories');
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-slate-500">Loading transactions...</div>;
     if (error) return <div className="p-8 text-center text-rose-500">{error}</div>;
 
@@ -68,6 +79,7 @@ export const Transactions: React.FC = () => {
                 transactions={transactions}
                 categories={categories}
                 onUpdateCategory={handleUpdateCategory}
+                onBulkUpdateCategory={handleBulkUpdateCategory}
             />
         </div>
     );

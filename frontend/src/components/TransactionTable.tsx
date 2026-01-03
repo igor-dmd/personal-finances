@@ -1,5 +1,7 @@
 import React from 'react';
 import type { Category } from '../lib/api';
+import { CategoryCombobox } from './CategoryCombobox';
+import { api } from '../lib/api';
 
 export interface DisplayTransaction {
     id: number;
@@ -14,27 +16,75 @@ interface TransactionTableProps {
     transactions: DisplayTransaction[];
     categories: Category[];
     onUpdateCategory: (transactionId: number, categoryId: number | null) => Promise<void>;
+    onBulkUpdateCategory: (description: string, categoryId: number | null) => Promise<void>;
 }
 
-export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, categories, onUpdateCategory }) => {
+export const TransactionTable: React.FC<TransactionTableProps> = ({
+    transactions,
+    categories,
+    onUpdateCategory,
+    onBulkUpdateCategory
+}) => {
     const [editingId, setEditingId] = React.useState<number | null>(null);
     const [selectedCategoryId, setSelectedCategoryId] = React.useState<number | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
+    const [showBulkOption, setShowBulkOption] = React.useState(false);
+    const [matchingCount, setMatchingCount] = React.useState<number>(0);
+    const [isBulkUpdating, setIsBulkUpdating] = React.useState(false);
 
     const handleEditClick = (t: DisplayTransaction) => {
         setEditingId(t.id);
         setSelectedCategoryId(t.categoryId);
     };
 
-    const handleSave = async (id: number) => {
-        setIsSaving(true);
-        try {
-            await onUpdateCategory(id, selectedCategoryId);
-            setEditingId(null);
-        } catch (error) {
-            console.error('Failed to update category', error);
-        } finally {
-            setIsSaving(false);
+    // Fetch count of matching transactions when editing starts
+    React.useEffect(() => {
+        const fetchCount = async () => {
+            if (editingId !== null) {
+                const transaction = transactions.find(t => t.id === editingId);
+                if (transaction) {
+                    try {
+                        const { count } = await api.getTransactionCountByDescription(transaction.description);
+                        setMatchingCount(count);
+                        // Only show bulk option if there's more than 1 matching transaction
+                        setShowBulkOption(count > 1);
+                    } catch (err) {
+                        console.error('Failed to fetch matching count', err);
+                        setShowBulkOption(false);
+                    }
+                }
+            } else {
+                setShowBulkOption(false);
+                setMatchingCount(0);
+            }
+        };
+        fetchCount();
+    }, [editingId, transactions]);
+
+    const handleSave = async (id: number, bulk: boolean = false) => {
+        const transaction = transactions.find(t => t.id === id);
+        if (!transaction) return;
+
+        if (bulk) {
+            setIsBulkUpdating(true);
+            try {
+                await onBulkUpdateCategory(transaction.description, selectedCategoryId);
+                setEditingId(null);
+            } catch (error) {
+                console.error('Failed to bulk update categories', error);
+            } finally {
+                setIsBulkUpdating(false);
+            }
+        } else {
+            setIsSaving(true);
+            try {
+                await onUpdateCategory(id, selectedCategoryId);
+                setEditingId(null);
+            } catch (error) {
+                console.error('Failed to update category', error);
+            } finally {
+                setIsSaving(false);
+            }
         }
     };
 
@@ -60,41 +110,49 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({ transactions
                             <td className="px-6 py-4 font-medium text-slate-900">{t.description}</td>
                             <td className="px-6 py-4">
                                 {editingId === t.id ? (
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            className="text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={selectedCategoryId || ''}
-                                            onChange={(e) => setSelectedCategoryId(e.target.value ? Number(e.target.value) : null)}
-                                            disabled={isSaving}
-                                            autoFocus
-                                        >
-                                            <option value="">Uncategorized</option>
-                                            {categories.map((c) => (
-                                                <option key={c.id} value={c.id}>
-                                                    {c.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            onClick={() => handleSave(t.id)}
-                                            disabled={isSaving || selectedCategoryId === t.categoryId}
-                                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-30"
-                                            title="Save"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                        <button
-                                            onClick={handleCancel}
-                                            disabled={isSaving}
-                                            className="p-1 text-slate-400 hover:bg-slate-50 rounded"
-                                            title="Cancel"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <CategoryCombobox
+                                                categories={categories}
+                                                selectedCategoryId={selectedCategoryId}
+                                                onSelect={setSelectedCategoryId}
+                                                disabled={isSaving || isBulkUpdating}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={() => handleSave(t.id, false)}
+                                                disabled={isSaving || isBulkUpdating || selectedCategoryId === t.categoryId}
+                                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-30"
+                                                title="Save"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                onClick={handleCancel}
+                                                disabled={isSaving || isBulkUpdating}
+                                                className="p-1 text-slate-400 hover:bg-slate-50 rounded"
+                                                title="Cancel"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        {/* Bulk update option */}
+                                        {showBulkOption && selectedCategoryId !== t.categoryId && (
+                                            <button
+                                                onClick={() => handleSave(t.id, true)}
+                                                disabled={isSaving || isBulkUpdating}
+                                                className="text-xs text-blue-600 hover:text-blue-800 hover:underline text-left disabled:opacity-50"
+                                            >
+                                                {isBulkUpdating
+                                                    ? 'Updating...'
+                                                    : `Apply to all ${matchingCount} "${t.description}" transactions`}
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <span
