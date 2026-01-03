@@ -8,6 +8,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeItem = 'Dashboard' }) => {
     const navItems = [
         { name: 'Transactions', icon: '💳', path: '/' },
+        { name: 'Categories', icon: '🏷️', path: '/categories' },
         { name: 'Import', icon: '📥', path: '/import' },
         { name: 'Settings', icon: '⚙️', path: '/settings' },
     ];

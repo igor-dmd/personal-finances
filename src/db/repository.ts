@@ -34,6 +34,22 @@ export class FinanceRepository {
         return await db.select().from(categories).all();
     }
 
+    async createCategory(name: string) {
+        const result = await db.insert(categories).values({ name }).returning().get();
+        return result;
+    }
+
+    async updateCategory(id: number, name: string) {
+        return await db.update(categories).set({ name }).where(eq(categories.id, id)).run();
+    }
+
+    async deleteCategory(id: number) {
+        // Set categoryId to null on transactions first
+        await db.update(transactions).set({ categoryId: null }).where(eq(transactions.categoryId, id)).run();
+        // Then delete the category
+        await db.delete(categories).where(eq(categories.id, id)).run();
+    }
+
     async updateTransaction(id: number, data: Partial<typeof transactions.$inferInsert>) {
         return await db.update(transactions).set(data).where(eq(transactions.id, id)).run();
     }

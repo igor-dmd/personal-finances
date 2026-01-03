@@ -257,4 +257,170 @@ describe('API Functional Tests', () => {
             expect(patchRes.status).toBe(200);
         });
     });
+
+    describe('Categories API', () => {
+        describe('GET /categories', () => {
+            it('should return empty list when no categories exist', async () => {
+                const res = await app.request('/categories');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data).toEqual([]);
+            });
+
+            it('should return list of categories when populated', async () => {
+                await db.insert(categories).values([
+                    { name: 'Food' },
+                    { name: 'Transportation' },
+                    { name: 'Entertainment' },
+                ]).run();
+
+                const res = await app.request('/categories');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+
+                expect(data).toHaveLength(3);
+                expect(data.map((c: { name: string }) => c.name)).toContain('Food');
+                expect(data.map((c: { name: string }) => c.name)).toContain('Transportation');
+                expect(data.map((c: { name: string }) => c.name)).toContain('Entertainment');
+            });
+        });
+
+        describe('POST /categories', () => {
+            it('should create a new category', async () => {
+                const res = await app.request('/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'Health' }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.name).toBe('Health');
+                expect(data.id).toBeDefined();
+
+                // Verify it was created
+                const verifyRes = await app.request('/categories');
+                const categories = await verifyRes.json();
+                expect(categories).toHaveLength(1);
+                expect(categories[0].name).toBe('Health');
+            });
+
+            it('should return 400 for empty name', async () => {
+                const res = await app.request('/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: '' }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+        });
+
+        describe('PATCH /categories/:id', () => {
+            it('should update category name', async () => {
+                // Create a category
+                const [category] = await db.insert(categories).values({ name: 'Old Name' }).returning();
+
+                const res = await app.request(`/categories/${category.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'New Name' }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+
+                // Verify the update
+                const verifyRes = await app.request('/categories');
+                const categoriesList = await verifyRes.json();
+                expect(categoriesList[0].name).toBe('New Name');
+            });
+
+            it('should return 400 for empty name', async () => {
+                const [category] = await db.insert(categories).values({ name: 'Test' }).returning();
+
+                const res = await app.request(`/categories/${category.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: '' }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should return 400 for invalid ID', async () => {
+                const res = await app.request('/categories/invalid', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'Test' }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+        });
+
+        describe('DELETE /categories/:id', () => {
+            it('should delete category', async () => {
+                // Create a category
+                const [category] = await db.insert(categories).values({ name: 'To Delete' }).returning();
+
+                const res = await app.request(`/categories/${category.id}`, {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.message).toBe('Category deleted successfully');
+
+                // Verify it was deleted
+                const verifyRes = await app.request('/categories');
+                const categoriesList = await verifyRes.json();
+                expect(categoriesList).toHaveLength(0);
+            });
+
+            it('should set categoryId to null on associated transactions when deleting category', async () => {
+                // Create a category
+                const [category] = await db.insert(categories).values({ name: 'Food' }).returning();
+
+                // Create a transaction with this category
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+                await db.insert(transactions).values({
+                    accountId: account.id,
+                    importJobId: job.id,
+                    categoryId: category.id,
+                    date: new Date('2023-12-10'),
+                    amount: 50.00,
+                    description: 'Grocery Store',
+                    originalDescription: 'Grocery Store'
+                }).run();
+
+                // Verify transaction has the category
+                const txBeforeRes = await app.request('/transactions');
+                const txBefore = await txBeforeRes.json();
+                expect(txBefore[0].categoryId).toBe(category.id);
+
+                // Delete the category
+                const deleteRes = await app.request(`/categories/${category.id}`, {
+                    method: 'DELETE',
+                });
+                expect(deleteRes.status).toBe(200);
+
+                // Verify transaction categoryId is now null
+                const txAfterRes = await app.request('/transactions');
+                const txAfter = await txAfterRes.json();
+                expect(txAfter[0].categoryId).toBeNull();
+                expect(txAfter[0].categoryName).toBeNull();
+            });
+
+            it('should return 400 for invalid ID', async () => {
+                const res = await app.request('/categories/invalid', {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(400);
+            });
+        });
+    });
 });

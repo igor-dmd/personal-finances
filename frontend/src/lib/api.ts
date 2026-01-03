@@ -28,9 +28,47 @@ export const api = {
     },
 
     getCategories: async (): Promise<Category[]> => {
-        const response = await fetch(`${API_URL}/transactions/categories`);
+        const response = await fetch(`${API_URL}/categories`);
         if (!response.ok) {
             throw new Error('Failed to fetch categories');
+        }
+        return response.json();
+    },
+
+    createCategory: async (name: string): Promise<Category> => {
+        const response = await fetch(`${API_URL}/categories`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to create category');
+        }
+        return response.json();
+    },
+
+    updateCategory: async (id: number, name: string): Promise<{ success: boolean }> => {
+        const response = await fetch(`${API_URL}/categories/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update category');
+        }
+        return response.json();
+    },
+
+    deleteCategory: async (id: number): Promise<{ message: string }> => {
+        const response = await fetch(`${API_URL}/categories/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            throw new Error('Failed to delete category');
         }
         return response.json();
     },

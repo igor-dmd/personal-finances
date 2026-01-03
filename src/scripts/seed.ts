@@ -17,15 +17,29 @@ async function seed() {
 
         // Create some categories
         const categoryData = [
-            { name: 'Coffee' },
-            { name: 'Groceries' },
-            { name: 'Transport' },
-            { name: 'Shopping' },
-            { name: 'Entertainment' },
-            { name: 'Gas' },
-            { name: 'Subscriptions' },
-            { name: 'Income' },
-            { name: 'Health' }
+            { name: 'Assinaturas' },
+            { name: 'Beleza' },
+            { name: 'Casa' },
+            { name: 'Celular' },
+            { name: 'Dívidas' },
+            { name: 'Eletrônicos' },
+            { name: 'Esportes' },
+            { name: 'Farmácia' },
+            { name: 'Gasolina' },
+            { name: 'Ian' },
+            { name: 'Internet' },
+            { name: 'Lazer' },
+            { name: 'Lobo' },
+            { name: 'Moradia' },
+            { name: 'Outros' },
+            { name: 'Presente' },
+            { name: 'Restaurante' },
+            { name: 'Saúde' },
+            { name: 'Supermercado' },
+            { name: 'Terreiro' },
+            { name: 'Trabalho' },
+            { name: 'Transporte' },
+            { name: 'Viagem' }
         ];
 
         const insertedCategories: any = await db.insert(categories).values(categoryData).returning();
