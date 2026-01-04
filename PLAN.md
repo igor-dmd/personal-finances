@@ -40,6 +40,7 @@ _Proposed design for the main dashboard showing key metrics and trends._
 - [x] Create Extraction Processor Logic (`src/extraction/processor.ts`).
 - [x] Add Test Scripts for Extraction (`src/extraction/scripts/test-extraction.ts`) - *Replaced by CLI Command*
 - [x] Implement CLI Command for File Processing (`src/index.ts`)
+- [x] Implement new CSV parser for Nubank Checking Account (`src/extraction/parsers/nubank-checking-parser.ts`).
 
 ### Data Persistence
 - [x] Implement Database Repository/Service for Transactions.
@@ -59,6 +60,7 @@ _Proposed design for the main dashboard showing key metrics and trends._
 
 ### Health & Maintenance
 - [x] Improve frontend type safety (Replace 'any' with models).
+- [x] Translate the application to PT-BR.
 
 ### Next Steps
 1.  Implement advanced filtering & search in API and Frontend.

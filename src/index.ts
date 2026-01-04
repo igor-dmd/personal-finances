@@ -15,10 +15,10 @@ program
     .argument('<type>', 'type of the file (e.g., nubank-cc-bill-csv)')
     .action(async (filepath, type) => {
         try {
-            console.log(`Processing file: ${filepath} with type: ${type}`);
+            console.log(`Processando arquivo: ${filepath} com tipo: ${type}`);
 
             if (!fs.existsSync(filepath)) {
-                console.error(`File not found: ${filepath}`);
+                console.error(`Arquivo não encontrado: ${filepath}`);
                 process.exit(1);
             }
 
@@ -26,11 +26,11 @@ program
             const processor = new ExtractionProcessor();
             const repo = new FinanceRepository();
 
-            console.log('Extracting transactions...');
+            console.log('Extraindo transações...');
             const transactions = await processor.processByType(filepath, content, type);
-            console.log(`Extracted ${transactions.length} transactions.`);
+            console.log(`Extraídas ${transactions.length} transações.`);
 
-            console.log('Saving to database...');
+            console.log('Salvando no banco de dados...');
             // For now, we hardcode the account based on the type or just use a default "Nubank"
             const accountName = 'Nubank Credit Card';
             const account = await repo.getOrCreateAccount(accountName, 'credit_card');
@@ -40,10 +40,10 @@ program
             await repo.saveTransactions(transactions, account.id, job.id);
             await repo.updateImportJobStatus(job.id, 'completed');
 
-            console.log('Transactions saved successfully.');
+            console.log('Transações salvas com sucesso.');
 
         } catch (error: any) {
-            console.error('Error processing file:', error.message);
+            console.error('Erro ao processar arquivo:', error.message);
             process.exit(1);
         }
     });

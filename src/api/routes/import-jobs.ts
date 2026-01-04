@@ -19,13 +19,13 @@ importJobs.delete('/:id', async (c) => {
     try {
         const id = parseInt(c.req.param('id'));
         if (isNaN(id)) {
-            return c.json({ error: 'Invalid ID' }, 400);
+            return c.json({ error: 'ID inválido' }, 400);
         }
 
         console.log(`[API] Deleting import job ${id}...`);
         await repo.deleteImportJob(id);
 
-        return c.json({ message: 'Import job and associated transactions deleted successfully' });
+        return c.json({ message: 'Importação e transações excluídas com sucesso' });
     } catch (error: any) {
         console.error(`[API] Error deleting import job ${c.req.param('id')}:`, error);
         return c.json({ error: error.message }, 500);

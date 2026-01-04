@@ -1,3 +1,4 @@
+
 import { Hono } from 'hono';
 import { FinanceRepository } from '../../db/repository';
 import { ExtractionProcessor } from '../../extraction/processor';
@@ -10,7 +11,7 @@ const processor = new ExtractionProcessor();
 
 // Schema for upload validation
 const uploadSchema = z.object({
-    type: z.string().min(1, 'Type is required'),
+    type: z.string().min(1, 'Tipo é obrigatório'),
 });
 
 const updateTransactionSchema = z.object({
@@ -21,8 +22,12 @@ const updateTransactionSchema = z.object({
 });
 
 const bulkUpdateCategorySchema = z.object({
-    description: z.string().min(1, 'Description is required'),
+    description: z.string().min(1, 'Descrição é obrigatória'),
     categoryId: z.number().nullable(),
+});
+
+transactions.get('/parser-types', (c) => {
+    return c.json(processor.getAvailableParsers());
 });
 
 transactions.get('/categories', async (c) => {
@@ -39,7 +44,7 @@ transactions.get('/by-description/count', async (c) => {
     try {
         const description = c.req.query('description');
         if (!description) {
-            return c.json({ error: 'Description query param required' }, 400);
+            return c.json({ error: 'Parâmetro query description é obrigatório' }, 400);
         }
 
         const count = await repo.countTransactionsByDescription(description);
@@ -102,7 +107,7 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
         const file = body['file'];
 
         if (!(file instanceof File)) {
-            return c.json({ error: 'No file provided or invalid file format' }, 400);
+            return c.json({ error: 'Arquivo não fornecido ou formato inválido' }, 400);
         }
 
         const { type } = c.req.valid('form') as z.infer<typeof uploadSchema>;
@@ -111,19 +116,20 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Check for duplicates
-        // Check for duplicates
-        // Removed referenceDate constraint
-
-
         // Process the file
         const drafts = await processor.processByType(file.name, buffer, type);
         console.log(`[API] Extracted ${drafts.length} transactions`);
 
-        // Save to DB
-        // TODO: Dynamically handle accounts. For now, default to Nubank.
-        const accountName = 'Nubank Credit Card';
-        const account = await repo.getOrCreateAccount(accountName, 'credit_card');
+        // Determine account based on parser type
+        let accountName = 'Nubank Credit Card';
+        let accountType = 'credit_card';
+
+        if (type === 'nubank-checking-csv') {
+            accountName = 'Nubank Checking Account';
+            accountType = 'checking';
+        }
+
+        const account = await repo.getOrCreateAccount(accountName, accountType as any);
         const job = await repo.createImportJob(file.name, 'pending', type);
 
         await repo.saveTransactions(drafts, account.id, job.id);
@@ -131,7 +137,7 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
 
         console.log('[API] Upload completed successfully');
         return c.json({
-            message: 'File processed successfully',
+            message: 'Arquivo processado com sucesso',
             count: drafts.length,
             jobId: job.id
         });

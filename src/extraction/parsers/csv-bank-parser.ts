@@ -1,5 +1,6 @@
 import { parse } from 'csv-parse/sync';
 import { BillParser, TransactionDraft } from '../types';
+import { validateCsvHeaders, KNOWN_HEADERS, suggestParser } from '../utils/header-validator';
 
 interface NubankRecord {
     date: string;
@@ -16,6 +17,22 @@ export class CsvBankParser implements BillParser {
     }
 
     async parse(content: Buffer): Promise<TransactionDraft[]> {
+        const fileContent = content.toString('utf-8');
+
+        // Validation
+        const expectedHeaders = KNOWN_HEADERS[this.identifier];
+        if (expectedHeaders) {
+            const { isValid, foundHeaders } = validateCsvHeaders(fileContent, expectedHeaders);
+            if (!isValid) {
+                let errorMsg = `Invalid headers for ${this.name}. Expected: ${expectedHeaders.join(', ')}. Found: ${foundHeaders.join(', ')}.`;
+                const suggestion = suggestParser(foundHeaders);
+                if (suggestion) {
+                    errorMsg += ` Did you mean to use parser '${suggestion}'?`;
+                }
+                throw new Error(errorMsg);
+            }
+        }
+
         const records = parse(content, {
             columns: true,
             skip_empty_lines: true,

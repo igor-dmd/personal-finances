@@ -1,0 +1,6 @@
+
+Data,Valor,Identificador,Descrição
+01/01/2023,-100.50,123456,Transferência Recebida - JOHN DOE - 123456
+02/01/2023,500.00,789012,Transferência recebida pelo Pix - JANE DOE - abcdef
+03/01/2023,-50.00,345678,Compra no Mercado
+04/01/2023,0.00,999999,Movimento automático para realização de transação compartilhada

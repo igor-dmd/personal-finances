@@ -35,7 +35,7 @@ describe('CLI Functional Test', () => {
         const { stdout, stderr } = await execAsync(command);
 
         expect(stderr).toBe('');
-        expect(stdout).toContain('Transactions saved successfully');
+        expect(stdout).toContain('Transações salvas com sucesso.');
 
         // 3. Verify DB Content
         const db = new Database(TEST_DB);

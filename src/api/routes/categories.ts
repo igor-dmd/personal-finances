@@ -1,3 +1,4 @@
+
 import { Hono } from 'hono';
 import { FinanceRepository } from '../../db/repository';
 import { z } from 'zod';
@@ -8,11 +9,11 @@ const repo = new FinanceRepository();
 
 // Schema for category validation
 const createCategorySchema = z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, 'Nome é obrigatório'),
 });
 
 const updateCategorySchema = z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z.string().min(1, 'Nome é obrigatório'),
 });
 
 categories.get('/', async (c) => {
@@ -41,7 +42,7 @@ categories.patch('/:id', zValidator('json', updateCategorySchema), async (c) => 
     try {
         const id = parseInt(c.req.param('id'));
         if (isNaN(id)) {
-            return c.json({ error: 'Invalid ID' }, 400);
+            return c.json({ error: 'ID inválido' }, 400);
         }
 
         const { name } = c.req.valid('json');
@@ -58,12 +59,12 @@ categories.delete('/:id', async (c) => {
     try {
         const id = parseInt(c.req.param('id'));
         if (isNaN(id)) {
-            return c.json({ error: 'Invalid ID' }, 400);
+            return c.json({ error: 'ID inválido' }, 400);
         }
 
         console.log(`[API] Deleting category ${id}...`);
         await repo.deleteCategory(id);
-        return c.json({ message: 'Category deleted successfully' });
+        return c.json({ message: 'Categoria excluída com sucesso' });
     } catch (error: any) {
         console.error(`[API] Error deleting category ${c.req.param('id')}:`, error);
         return c.json({ error: error.message }, 500);

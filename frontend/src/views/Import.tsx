@@ -16,6 +16,8 @@ export const Import: React.FC = () => {
     const [jobs, setJobs] = useState<ImportJob[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
+    const [parserTypes, setParserTypes] = useState<{ name: string; identifier: string }[]>([]);
+    const [selectedParser, setSelectedParser] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +37,20 @@ export const Import: React.FC = () => {
     };
 
     useEffect(() => {
+        const fetchParsers = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/transactions/parser-types');
+                if (response.ok) {
+                    const data = await response.json();
+                    setParserTypes(data);
+                    if (data.length > 0) setSelectedParser(data[0].identifier);
+                }
+            } catch (error) {
+                console.error('Error fetching parsers:', error);
+            }
+        };
+
+        fetchParsers();
         fetchJobs();
     }, []);
 
@@ -62,7 +78,7 @@ export const Import: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!file) {
-            setMessage('Please select a file.');
+            setMessage('Por favor, selecione um arquivo.');
             setStatus('error');
             return;
         }
@@ -72,7 +88,7 @@ export const Import: React.FC = () => {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('type', 'nubank-cc-bill-csv');
+        formData.append('type', selectedParser);
 
         try {
             const response = await fetch('http://localhost:3000/transactions/upload', {
@@ -83,11 +99,11 @@ export const Import: React.FC = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Upload failed');
+                throw new Error(data.error || 'Falha no upload');
             }
 
             setStatus('success');
-            setMessage(`Successfully imported ${data.count} transactions.`);
+            setMessage(`${data.count} transações importadas com sucesso.`);
             setFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
             fetchJobs(); // Refresh the list
@@ -101,7 +117,7 @@ export const Import: React.FC = () => {
     const handleDeleteJob = async (id: number) => {
         console.log(`[Import] Sending DELETE request for job ${id}`);
         setStatus('uploading');
-        setMessage('Reverting import...');
+        setMessage('Revertendo importação...');
         setConfirmingId(null);
 
         try {
@@ -111,13 +127,13 @@ export const Import: React.FC = () => {
 
             if (response.ok) {
                 console.log(`[Import] Job ${id} deleted successfully`);
-                setMessage('Import reverted successfully.');
+                setMessage('Importação revertida com sucesso.');
                 setStatus('success');
                 fetchJobs();
             } else {
                 const data = await response.json();
                 console.error(`[Import] Failed to delete job ${id}:`, data.error);
-                throw new Error(data.error || 'Failed to delete job');
+                throw new Error(data.error || 'Falha ao deletar job');
             }
         } catch (error: any) {
             console.error(`[Import] Error in handleDeleteJob for ${id}:`, error);
@@ -130,14 +146,14 @@ export const Import: React.FC = () => {
         <div className="max-w-4xl mx-auto">
             <header className="mb-8 flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Import Transactions</h1>
-                    <p className="text-slate-500">Upload your bank statements to track your finances.</p>
+                    <h1 className="text-3xl font-bold text-slate-900 mb-2">Importar Transações</h1>
+                    <p className="text-slate-500">Faça o upload dos seus extratos bancários para acompanhar suas finanças.</p>
                 </div>
                 <button
                     onClick={() => historyRef.current?.scrollIntoView({ behavior: 'smooth' })}
                     className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1 transition-colors"
                 >
-                    View History ↓
+                    Exibir Histórico ↓
                 </button>
             </header>
 
@@ -146,14 +162,20 @@ export const Import: React.FC = () => {
                     {/* Configuration Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Transaction Source</label>
+                            <label className="text-sm font-medium text-slate-700">Origem das Transações</label>
                             <select
-                                disabled
-                                className="w-full bg-slate-50 border border-slate-300 text-slate-500 rounded-lg px-4 py-3 outline-none cursor-not-allowed"
+                                value={selectedParser}
+                                onChange={(e) => setSelectedParser(e.target.value)}
+                                disabled={parserTypes.length === 0}
+                                className="w-full bg-white border border-slate-300 text-slate-900 rounded-lg px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                             >
-                                <option>Nubank Bill (CSV)</option>
+                                {parserTypes.map((parser) => (
+                                    <option key={parser.identifier} value={parser.identifier}>
+                                        {parser.name}
+                                    </option>
+                                ))}
                             </select>
-                            <p className="text-xs text-slate-500">Currently only Nubank CSV exports are supported.</p>
+                            <p className="text-xs text-slate-500">Selecione o tipo de arquivo que você está enviando.</p>
                         </div>
 
                     </div>
@@ -189,8 +211,8 @@ export const Import: React.FC = () => {
                                 </div>
                             ) : (
                                 <div>
-                                    <p className="text-lg font-medium text-slate-900">Click to upload or drag and drop</p>
-                                    <p className="text-sm text-slate-500">CSV files only</p>
+                                    <p className="text-lg font-medium text-slate-900">Clique para fazer o upload ou arraste e solte</p>
+                                    <p className="text-sm text-slate-500">Apenas arquivos CSV</p>
                                 </div>
                             )}
                         </div>
@@ -220,7 +242,7 @@ export const Import: React.FC = () => {
                                 : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20'
                                 }`}
                         >
-                            {status === 'uploading' ? 'Importing...' : 'Confirm Import'}
+                            {status === 'uploading' ? 'Importando...' : 'Confirmar Importação'}
                         </button>
                     </div>
                 </form>
@@ -229,25 +251,25 @@ export const Import: React.FC = () => {
             {/* Import History Table */}
             <div ref={historyRef} className="mt-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-slate-900">Import History</h2>
-                    {isLoadingJobs && <span className="text-sm text-slate-500 animate-pulse">Refreshing...</span>}
+                    <h2 className="text-xl font-semibold text-slate-900">Histórico de Importação</h2>
+                    {isLoadingJobs && <span className="text-sm text-slate-500 animate-pulse">Atualizando...</span>}
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Filename</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Type</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Date & Time</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Arquivo</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Tipo</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-700">Data e Hora</th>
                                 <th className="px-6 py-4 text-sm font-semibold text-slate-700">Status</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-slate-700 text-right">Actions</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-slate-700 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {jobs.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-10 text-center text-slate-400 italic">
-                                        No imports yet.
+                                        Nenhuma importação ainda.
                                     </td>
                                 </tr>
                             ) : (
@@ -277,22 +299,22 @@ export const Import: React.FC = () => {
                                                         onClick={() => handleDeleteJob(job.id)}
                                                         className="text-red-600 hover:text-red-800 font-bold text-sm bg-red-50 px-2 py-1 rounded border border-red-200"
                                                     >
-                                                        Confirm
+                                                        Confirmar
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmingId(null)}
                                                         className="text-slate-500 hover:text-slate-700 font-medium text-sm px-2 py-1"
                                                     >
-                                                        Cancel
+                                                        Cancelar
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <button
                                                     onClick={() => setConfirmingId(job.id)}
                                                     className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors"
-                                                    title="Revert Import"
+                                                    title="Reverter Importação"
                                                 >
-                                                    Revert
+                                                    Reverter
                                                 </button>
                                             )}
                                         </td>

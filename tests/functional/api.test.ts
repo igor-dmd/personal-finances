@@ -116,7 +116,7 @@ describe('API Functional Tests', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.message).toBe('File processed successfully');
+        expect(body.message).toBe('Arquivo processado com sucesso');
         expect(body.count).toBe(2);
 
         // Verify transaction was added via GET
@@ -371,7 +371,7 @@ describe('API Functional Tests', () => {
 
                 expect(res.status).toBe(200);
                 const data = await res.json();
-                expect(data.message).toBe('Category deleted successfully');
+                expect(data.message).toBe('Categoria excluída com sucesso');
 
                 // Verify it was deleted
                 const verifyRes = await app.request('/categories');
@@ -495,10 +495,14 @@ describe('API Functional Tests', () => {
                 const job = await repo.createImportJob('test.csv', 'completed', 'test');
 
                 await db.insert(transactions).values([
-                    { accountId: account.id, importJobId: job.id, categoryId: category.id,
-                      date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
-                    { accountId: account.id, importJobId: job.id, categoryId: category.id,
-                      date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
+                    {
+                        accountId: account.id, importJobId: job.id, categoryId: category.id,
+                        date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber'
+                    },
+                    {
+                        accountId: account.id, importJobId: job.id, categoryId: category.id,
+                        date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber'
+                    },
                 ]).run();
 
                 const res = await app.request('/transactions/by-description', {

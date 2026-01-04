@@ -34,7 +34,7 @@ export const CategoryCombobox: React.FC<CategoryComboboxProps> = ({
 
     // Build options list: "Uncategorized" first, then filtered categories
     const filteredOptions: Option[] = React.useMemo(() => {
-        const uncategorized: Option = { id: null, name: 'Uncategorized' };
+        const uncategorized: Option = { id: null, name: 'Sem Categoria' };
         const filtered = inputValue
             ? categories.filter(c =>
                 c.name.toLowerCase().includes(inputValue.toLowerCase()))
@@ -109,7 +109,7 @@ export const CategoryCombobox: React.FC<CategoryComboboxProps> = ({
                 onKeyDown={handleKeyDown}
                 disabled={disabled}
                 autoFocus={autoFocus}
-                placeholder="Search categories..."
+                placeholder="Buscar categorias..."
                 className="text-xs border border-slate-200 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full disabled:bg-slate-100 disabled:cursor-not-allowed"
             />
 
@@ -117,18 +117,17 @@ export const CategoryCombobox: React.FC<CategoryComboboxProps> = ({
                 <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-auto">
                     {filteredOptions.length === 0 ? (
                         <div className="px-3 py-2 text-sm text-slate-400 italic">
-                            No categories found
+                            Nenhuma categoria encontrada
                         </div>
                     ) : (
                         filteredOptions.map((option, index) => (
                             <div
                                 key={option.id ?? 'uncategorized'}
                                 onClick={() => handleSelectOption(option)}
-                                className={`px-3 py-2 text-sm cursor-pointer ${
-                                    index === highlightedIndex
-                                        ? 'bg-blue-100'
-                                        : 'hover:bg-slate-100'
-                                } ${option.id === null ? 'text-slate-400 italic' : ''}`}
+                                className={`px-3 py-2 text-sm cursor-pointer ${index === highlightedIndex
+                                    ? 'bg-blue-100'
+                                    : 'hover:bg-slate-100'
+                                    } ${option.id === null ? 'text-slate-400 italic' : ''}`}
                             >
                                 {option.name}
                             </div>

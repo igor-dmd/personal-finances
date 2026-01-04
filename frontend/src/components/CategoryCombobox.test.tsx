@@ -20,7 +20,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        expect(screen.getByPlaceholderText('Search categories...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Buscar categorias...')).toBeInTheDocument();
     });
 
     it('shows selected category name in input', () => {
@@ -33,7 +33,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...') as HTMLInputElement;
+        const input = screen.getByPlaceholderText('Buscar categorias...') as HTMLInputElement;
         expect(input.value).toBe('Food');
     });
 
@@ -48,11 +48,11 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         await waitFor(() => {
-            expect(screen.getByText('Uncategorized')).toBeInTheDocument();
+            expect(screen.getByText('Sem Categoria')).toBeInTheDocument();
             expect(screen.getByText('Food')).toBeInTheDocument();
             expect(screen.getByText('Transport')).toBeInTheDocument();
             expect(screen.getByText('Entertainment')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
         await user.type(input, 'foo');
 
@@ -92,11 +92,11 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         await waitFor(() => {
-            expect(screen.getByText('Uncategorized')).toBeInTheDocument();
+            expect(screen.getByText('Sem Categoria')).toBeInTheDocument();
             expect(screen.getByText('Food')).toBeInTheDocument();
             expect(screen.getByText('Transport')).toBeInTheDocument();
             expect(screen.getByText('Entertainment')).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         const foodOption = await screen.findByText('Food');
@@ -134,10 +134,10 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
-        const uncategorizedOption = await screen.findByText('Uncategorized');
+        const uncategorizedOption = await screen.findByText('Sem Categoria');
         await user.click(uncategorizedOption);
 
         expect(onSelect).toHaveBeenCalledWith(null);
@@ -154,7 +154,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         await waitFor(() => {
@@ -179,11 +179,11 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         await waitFor(() => {
-            expect(screen.getByText('Uncategorized')).toBeInTheDocument();
+            expect(screen.getByText('Sem Categoria')).toBeInTheDocument();
         });
 
         // Press ArrowDown to move to Food (index 1)
@@ -206,7 +206,7 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...') as HTMLInputElement;
+        const input = screen.getByPlaceholderText('Buscar categorias...') as HTMLInputElement;
         expect(input.disabled).toBe(true);
     });
 
@@ -224,7 +224,7 @@ describe('CategoryCombobox', () => {
             </div>
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
 
         await waitFor(() => {
@@ -250,13 +250,13 @@ describe('CategoryCombobox', () => {
             />
         );
 
-        const input = screen.getByPlaceholderText('Search categories...');
+        const input = screen.getByPlaceholderText('Buscar categorias...');
         await user.click(input);
         await user.type(input, 'xyz');
 
         await waitFor(() => {
             // Uncategorized is always shown
-            expect(screen.getByText('Uncategorized')).toBeInTheDocument();
+            expect(screen.getByText('Sem Categoria')).toBeInTheDocument();
             // But no other categories should be visible
             expect(screen.queryByText('Food')).not.toBeInTheDocument();
             expect(screen.queryByText('Transport')).not.toBeInTheDocument();
