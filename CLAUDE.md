@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and Antigravity agents when working with code in this repository.
 
 ## Commands
 
@@ -124,3 +124,7 @@ Key components:
 ## Agent Rules
 
 The `.agent/rules/plan.md` file instructs agents to update PLAN.md when tasks advance or the technology stack changes.
+
+## Planning new features
+
+Everytime a new plan for implementing a feature is created, add it as a new section in PLAN.md. Remove the section when the feature is implemented.
