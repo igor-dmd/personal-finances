@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Category } from '../lib/api';
 import { CategoryCombobox } from './CategoryCombobox';
+import { AccountTypeIcon } from './AccountTypeIcon';
 import { api } from '../lib/api';
 
 export interface DisplayTransaction {
@@ -11,6 +12,7 @@ export interface DisplayTransaction {
     category: string;
     categoryId: number | null;
     amount: number;
+    type: 'credit_card' | 'checking' | string;
 }
 
 interface MonthSectionProps {
@@ -172,6 +174,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                             <table className="w-full text-left text-sm text-slate-600">
                                 <thead className="bg-slate-50 text-slate-900 border-b border-slate-100">
                                     <tr>
+                                        <th className="px-4 py-3 font-semibold w-12">Tipo</th>
                                         <th className="px-6 py-3 font-semibold">Data</th>
                                         <th className="px-6 py-3 font-semibold">Descrição</th>
                                         <th className="px-6 py-3 font-semibold">Categoria</th>
@@ -181,6 +184,9 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                 <tbody className="divide-y divide-slate-50">
                                     {transactions.map((t) => (
                                         <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-4 py-4 text-center">
+                                                <AccountTypeIcon type={t.type} />
+                                            </td>
                                             <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{t.date}</td>
                                             <td className="px-6 py-4 font-medium text-slate-900">{t.description}</td>
                                             <td className="px-6 py-4">
