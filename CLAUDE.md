@@ -51,6 +51,7 @@ Custom slash commands available in `.claude/skills/`:
 - `/dev` - Start both backend and frontend servers
 - `/migrate` - Generate and apply database migrations
 - `/test-all` - Run full test suite (backend + frontend)
+- `/validate-feature` - Record video demonstration of frontend functionality (requires Chrome plugin)
 
 ## Architecture
 
@@ -115,6 +116,15 @@ Key components:
 - Actions that trigger visual changes (button clicks, form submissions, state updates) must be tested
 - Use React Testing Library with `userEvent` for interactions
 - Test files live alongside their components or in the same directory as views
+
+### Feature Validation (Chrome Plugin)
+
+**REQUIRED**: When the Chrome browser plugin is enabled and any frontend functionality is implemented or modified:
+- **MUST** use the `/validate-feature` skill to demonstrate the functionality
+- Create a GIF recording showing the feature in action
+- This applies to all UI changes, new workflows, or modified user interactions
+- The validation should happen after implementation and testing are complete
+- This provides visual documentation of features and ensures they work as expected
 
 ## Environment Variables
 
