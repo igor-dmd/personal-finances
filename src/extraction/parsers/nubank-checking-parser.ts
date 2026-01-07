@@ -1,6 +1,6 @@
 
 import { parse } from 'csv-parse/sync';
-import { BillParser, TransactionDraft } from '../types';
+import { BillParser, TransactionDraft, TRANSACTION_TYPES } from '../types';
 import { normalizeDescription } from '../normalizers/description-normalizer';
 
 interface NubankCheckingRecord {
@@ -13,6 +13,7 @@ interface NubankCheckingRecord {
 export class NubankCheckingParser implements BillParser {
     name = 'Nubank Checking Account CSV';
     identifier = 'nubank-checking-csv';
+    transactionType = TRANSACTION_TYPES.CHECKING;
 
     supports(filename: string, content: Buffer): boolean {
         // We rely on the processor to use header validation or user selection, 

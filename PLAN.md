@@ -61,11 +61,6 @@ _Proposed design for the main dashboard showing key metrics and trends._
 ### Health & Maintenance
 - [x] Improve frontend type safety (Replace 'any' with models).
 - [x] Translate the application to PT-BR.
+- [x] Implement Transaction Type Field (Credit Card vs Checking).
 
 ### Next Steps
-1.  Implement advanced filtering & search in API and Frontend.
-2.  Add support for more file types (e.g. other banks).
-3.  Add data visualization and reporting features.
-
----
-*Note: Fixed a `db:migrate` error related to SQLite not supporting automatic default value changes by manually implementing the migration for the `import_jobs` table.*

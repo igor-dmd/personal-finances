@@ -11,8 +11,17 @@ export class ExtractionProcessor {
     getAvailableParsers() {
         return this.parsers.map(p => ({
             name: p.name,
-            identifier: p.identifier
+            identifier: p.identifier,
+            transactionType: p.transactionType
         }));
+    }
+
+    getTransactionType(identifier: string): string {
+        const parser = this.parsers.find(p => p.identifier === identifier);
+        if (!parser) {
+            throw new Error(`No parser found for type: ${identifier}`);
+        }
+        return parser.transactionType;
     }
 
     async processByType(filename: string, content: Buffer, type: string): Promise<TransactionDraft[]> {

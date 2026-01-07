@@ -10,6 +10,7 @@ export interface Transaction {
     accountName: string | null;
     categoryId: number | null;
     categoryName: string | null;
+    type: 'credit_card' | 'checking' | string;
 }
 
 export interface Category {

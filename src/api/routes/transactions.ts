@@ -118,7 +118,8 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
 
         // Process the file
         const drafts = await processor.processByType(file.name, buffer, type);
-        console.log(`[API] Extracted ${drafts.length} transactions`);
+        const transactionType = processor.getTransactionType(type);
+        console.log(`[API] Extracted ${drafts.length} transactions of type ${transactionType}`);
 
         // Determine account based on parser type
         let accountName = 'Nubank Credit Card';
@@ -132,7 +133,7 @@ transactions.post('/upload', zValidator('form', uploadSchema), async (c) => {
         const account = await repo.getOrCreateAccount(accountName, accountType as any);
         const job = await repo.createImportJob(file.name, 'pending', type);
 
-        await repo.saveTransactions(drafts, account.id, job.id);
+        await repo.saveTransactions(drafts, account.id, job.id, transactionType);
         await repo.updateImportJobStatus(job.id, 'completed');
 
         console.log('[API] Upload completed successfully');

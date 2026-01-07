@@ -32,4 +32,5 @@ export const transactions = sqliteTable('transactions', {
     amount: real('amount').notNull(),
     description: text('description').notNull(),
     originalDescription: text('original_description'),
+    type: text('type').notNull().default('credit_card'),
 });

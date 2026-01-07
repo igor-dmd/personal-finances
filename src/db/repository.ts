@@ -61,6 +61,7 @@ export class FinanceRepository {
             amount: transactions.amount,
             description: transactions.description,
             originalDescription: transactions.originalDescription,
+            type: transactions.type,
             accountName: accounts.name,
             categoryId: transactions.categoryId,
             categoryName: categories.name,
@@ -75,7 +76,7 @@ export class FinanceRepository {
         await db.update(importJobs).set({ status }).where(eq(importJobs.id, id)).run();
     }
 
-    async saveTransactions(drafts: TransactionDraft[], accountId: number, importJobId: number) {
+    async saveTransactions(drafts: TransactionDraft[], accountId: number, importJobId: number, transactionType: string) {
         const txs = drafts.map(draft => ({
             accountId,
             importJobId,
@@ -83,6 +84,7 @@ export class FinanceRepository {
             amount: draft.amount,
             description: draft.description,
             originalDescription: draft.originalDescription,
+            type: transactionType,
         }));
 
         // Batch insert could be better, but sqlite limits vars per statement.

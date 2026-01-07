@@ -1,5 +1,5 @@
 import { parse } from 'csv-parse/sync';
-import { BillParser, TransactionDraft } from '../types';
+import { BillParser, TransactionDraft, TRANSACTION_TYPES } from '../types';
 import { validateCsvHeaders, KNOWN_HEADERS, suggestParser } from '../utils/header-validator';
 
 interface NubankRecord {
@@ -11,6 +11,7 @@ interface NubankRecord {
 export class CsvBankParser implements BillParser {
     name = 'Nubank Credit Card Bill CSV';
     identifier = 'nubank-cc-bill-csv';
+    transactionType = TRANSACTION_TYPES.CREDIT_CARD;
 
     supports(filename: string): boolean {
         return filename.toLowerCase().endsWith('.csv');

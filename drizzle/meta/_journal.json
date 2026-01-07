@@ -43,6 +43,13 @@
       "when": 1767304226355,
       "tag": "0005_sweet_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1767572344846,
+      "tag": "0006_puzzling_earthquake",
+      "breakpoints": true
     }
   ]
 }

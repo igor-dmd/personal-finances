@@ -1,0 +1,1 @@
+ALTER TABLE transactions ADD `type` text DEFAULT 'credit_card' NOT NULL;

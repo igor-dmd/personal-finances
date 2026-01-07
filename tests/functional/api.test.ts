@@ -71,7 +71,7 @@ describe('API Functional Tests', () => {
             }
         ];
 
-        await repo.saveTransactions(drafts, account.id, job.id);
+        await repo.saveTransactions(drafts, account.id, job.id, 'credit_card');
 
         const res = await app.request('/transactions');
         expect(res.status).toBe(200);
@@ -125,6 +125,40 @@ describe('API Functional Tests', () => {
         expect(transactions).toHaveLength(2);
         expect(transactions[0].description).toBe('Test Transaction');
         expect(transactions[0].amount).toBe(100.00);
+        expect(transactions[0].type).toBe('credit_card');
+    });
+
+    it('POST /transactions/upload should process Nubank Checking CSV', async () => {
+        const csvContent = `Data,Valor,Identificador,Descrição
+01/12/2023,100.00,123,Deposit
+02/12/2023,-50.00,456,Transfer`;
+        const dummyFile = 'dummy-checking.csv';
+        fs.writeFileSync(dummyFile, csvContent);
+
+        const formData = new FormData();
+        const fileContent = fs.readFileSync(dummyFile);
+        const blob = new Blob([fileContent], { type: 'text/csv' });
+
+        formData.append('file', blob, 'checking.csv');
+        formData.append('type', 'nubank-checking-csv');
+
+        const res = await app.request('/transactions/upload', {
+            method: 'POST',
+            body: formData,
+        });
+
+        fs.unlinkSync(dummyFile);
+
+        expect(res.status).toBe(200);
+
+        const getRes = await app.request('/transactions');
+        const transactions = await getRes.json();
+        // Since tests are isolated (beforeEach clears db), this should be fine.
+        // Wait, beforeEach clears DB.
+
+        const deposit = transactions.find((t: any) => t.description === 'Deposit');
+        expect(deposit).toBeDefined();
+        expect(deposit.type).toBe('checking');
     });
 
     it('POST /transactions/upload should return 400 for invalid file', async () => {
@@ -181,7 +215,7 @@ describe('API Functional Tests', () => {
                 amount: 50.00,
                 description: 'Supermarket',
                 originalDescription: 'Supermarket'
-            }], account.id, job.id);
+            }], account.id, job.id, 'credit_card');
 
             // Get the transaction
             const getRes = await app.request('/transactions');
@@ -434,7 +468,7 @@ describe('API Functional Tests', () => {
                     { date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
                     { date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
                     { date: new Date(), amount: 20, description: 'Lyft', originalDescription: 'Lyft' },
-                ], account.id, job.id);
+                ], account.id, job.id, 'credit_card');
 
                 const res = await app.request('/transactions/by-description/count?description=Uber');
                 expect(res.status).toBe(200);
@@ -466,7 +500,7 @@ describe('API Functional Tests', () => {
                     { date: new Date(), amount: 10, description: 'Uber', originalDescription: 'Uber' },
                     { date: new Date(), amount: 15, description: 'Uber', originalDescription: 'Uber' },
                     { date: new Date(), amount: 20, description: 'Lyft', originalDescription: 'Lyft' },
-                ], account.id, job.id);
+                ], account.id, job.id, 'credit_card');
 
                 const res = await app.request('/transactions/by-description', {
                     method: 'PATCH',
