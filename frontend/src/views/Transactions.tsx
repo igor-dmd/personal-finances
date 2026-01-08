@@ -57,7 +57,9 @@ export const Transactions: React.FC = () => {
                 category: t.categoryName || 'Sem Categoria',
                 categoryId: t.categoryId,
                 amount: t.amount,
-                type: t.type
+                type: t.type,
+                installmentGroupId: t.installmentGroupId,
+                installmentNumber: t.installmentNumber
             }));
 
             setTransactions(formatted);
@@ -215,7 +217,6 @@ export const Transactions: React.FC = () => {
                 isOpen={isFormModalOpen}
                 onClose={() => setIsFormModalOpen(false)}
                 onSave={handleSaveTransaction}
-                accounts={accounts}
                 categories={categories}
                 initialData={selectedTransaction}
                 mode={formMode}

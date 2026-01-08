@@ -4,6 +4,12 @@ import { FinanceRepository } from '../../db/repository';
 import { ExtractionProcessor } from '../../extraction/processor';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+// Load institutions config
+const institutionsConfigPath = join(process.cwd(), 'config', 'institutions.json');
+const institutionsConfig = JSON.parse(readFileSync(institutionsConfigPath, 'utf-8'));
 
 const transactions = new Hono();
 const repo = new FinanceRepository();
@@ -27,7 +33,7 @@ const bulkUpdateCategorySchema = z.object({
 });
 
 const createTransactionSchema = z.object({
-    accountId: z.number().int().positive('Account ID é obrigatório'),
+    institutionId: z.string().min(1, 'Instituição é obrigatória'),
     categoryId: z.number().int().positive().nullable().optional(),
     date: z.coerce.date(),
     amount: z.number(),
@@ -45,6 +51,10 @@ transactions.get('/accounts', async (c) => {
         console.error('[API] Error fetching accounts:', error);
         return c.json({ error: error.message }, 500);
     }
+});
+
+transactions.get('/institutions-config', (c) => {
+    return c.json(institutionsConfig);
 });
 
 transactions.get('/parser-types', (c) => {
@@ -148,7 +158,27 @@ transactions.post('/', zValidator('json', createTransactionSchema), async (c) =>
         const data = c.req.valid('json');
         console.log('[API] Creating manual transaction...', data);
 
-        const result = await repo.createTransaction(data);
+        // Find institution in config
+        const institution = institutionsConfig.institutions.find((i: any) => i.id === data.institutionId);
+        if (!institution) {
+            return c.json({ error: 'Instituição não encontrada' }, 400);
+        }
+
+        // Create account name from institution name + type label
+        const typeLabel = institutionsConfig.accountTypeLabels[data.type];
+        const accountName = `${institution.name} ${typeLabel}`;
+
+        // Find or create account
+        const account = await repo.getOrCreateAccount(accountName, data.type);
+
+        const result = await repo.createTransaction({
+            accountId: account.id,
+            categoryId: data.categoryId,
+            date: data.date,
+            amount: data.amount,
+            description: data.description,
+            type: data.type,
+        });
 
         return c.json({
             success: true,

@@ -1,0 +1,23 @@
+{
+  "institutions": [
+    {
+      "id": "nubank",
+      "name": "Nubank",
+      "accountTypes": ["credit_card", "checking"]
+    },
+    {
+      "id": "mercado-pago",
+      "name": "Mercado Pago",
+      "accountTypes": ["credit_card", "checking"]
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "accountTypes": ["credit_card"]
+    }
+  ],
+  "accountTypeLabels": {
+    "credit_card": "Cartão de Crédito",
+    "checking": "Conta Corrente"
+  }
+}

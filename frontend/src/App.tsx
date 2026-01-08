@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Transactions } from './views/Transactions';
 import { Import } from './views/Import';
 import { Categories } from './views/Categories';
+import { Installments } from './views/Installments';
 import { Layout } from './components/Layout';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
           <Route index element={<Transactions />} />
           <Route path="categories" element={<Categories />} />
           <Route path="import" element={<Import />} />
+          <Route path="installments" element={<Installments />} />
         </Route>
       </Routes>
     </Router>

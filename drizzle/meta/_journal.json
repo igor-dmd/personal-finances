@@ -50,6 +50,13 @@
       "when": 1767572344846,
       "tag": "0006_puzzling_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1767883762075,
+      "tag": "0007_salty_kabuki",
+      "breakpoints": true
     }
   ]
 }

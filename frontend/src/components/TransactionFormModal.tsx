@@ -1,6 +1,6 @@
 import React from 'react';
 import { CategoryCombobox } from './CategoryCombobox';
-import type { Account, Category, CreateTransactionData } from '../lib/api';
+import type { Category, InstitutionsConfig } from '../lib/api';
 import type { DisplayTransaction } from './MonthSection';
 import { api } from '../lib/api';
 
@@ -8,7 +8,6 @@ interface TransactionFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: () => Promise<void>;
-    accounts: Account[];
     categories: Category[];
     initialData?: DisplayTransaction | null;
     mode: 'create' | 'edit';
@@ -18,12 +17,10 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     isOpen,
     onClose,
     onSave,
-    accounts,
     categories,
     initialData,
     mode,
 }) => {
-    const [accountId, setAccountId] = React.useState<number>(0);
     const [date, setDate] = React.useState<string>('');
     const [amount, setAmount] = React.useState<string>('');
     const [direction, setDirection] = React.useState<'income' | 'expense'>('expense');
@@ -32,19 +29,33 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     const [categoryId, setCategoryId] = React.useState<number | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [isInstallment, setIsInstallment] = React.useState(false);
+    const [totalInstallments, setTotalInstallments] = React.useState<number>(2);
+    const [institutionsConfig, setInstitutionsConfig] = React.useState<InstitutionsConfig | null>(null);
+    const [selectedInstitutionId, setSelectedInstitutionId] = React.useState<string>('');
+
+    // Fetch institutions config on mount
+    React.useEffect(() => {
+        api.getInstitutionsConfig().then(setInstitutionsConfig).catch(console.error);
+    }, []);
+
+    // Get the selected institution's available account types
+    const selectedInstitution = institutionsConfig?.institutions.find(i => i.id === selectedInstitutionId);
+    const availableAccountTypes = selectedInstitution?.accountTypes || [];
 
     React.useEffect(() => {
         if (isOpen) {
             if (mode === 'create') {
-                setAccountId(accounts[0]?.id || 0);
                 setDate(new Date().toISOString().split('T')[0]);
                 setAmount('');
                 setDirection('expense');
                 setDescription('');
+                setSelectedInstitutionId(institutionsConfig?.institutions[0]?.id || '');
                 setType('credit_card');
                 setCategoryId(null);
+                setIsInstallment(false);
+                setTotalInstallments(2);
             } else if (initialData) {
-                setAccountId(accounts[0]?.id || 0);
                 setDate(initialData.rawDate.split('T')[0]);
                 setAmount(Math.abs(initialData.amount).toString());
                 setDirection(initialData.amount >= 0 ? 'income' : 'expense');
@@ -54,13 +65,27 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
             }
             setError(null);
         }
-    }, [isOpen, mode, initialData, accounts]);
+    }, [isOpen, mode, initialData, institutionsConfig]);
+
+    // When institution changes, reset account type to first available
+    React.useEffect(() => {
+        if (selectedInstitution && selectedInstitution.accountTypes.length > 0) {
+            if (!selectedInstitution.accountTypes.includes(type)) {
+                setType(selectedInstitution.accountTypes[0]);
+            }
+        }
+    }, [selectedInstitutionId, selectedInstitution, type]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
 
-        if (!accountId || !date || !amount || !description) {
+        if (mode === 'create' && !selectedInstitutionId) {
+            setError('Por favor, selecione uma instituição');
+            return;
+        }
+
+        if (!date || !amount || !description) {
             setError('Por favor, preencha todos os campos obrigatórios');
             return;
         }
@@ -71,21 +96,40 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
             return;
         }
 
-        const finalAmount = direction === 'expense' ? -numericAmount : numericAmount;
+        if (isInstallment && (totalInstallments < 2 || totalInstallments > 120)) {
+            setError('Número de parcelas deve estar entre 2 e 120');
+            return;
+        }
 
         setLoading(true);
 
         try {
             if (mode === 'create') {
-                await api.createTransaction({
-                    accountId,
-                    categoryId,
-                    date,
-                    amount: finalAmount,
-                    description,
-                    type,
-                });
+                if (isInstallment) {
+                    // Create installment group with all transactions
+                    await api.createInstallment({
+                        description,
+                        totalInstallments,
+                        totalAmount: numericAmount,
+                        firstInstallmentDate: date,
+                        institutionId: selectedInstitutionId,
+                        type,
+                        categoryId,
+                    });
+                } else {
+                    // Create single transaction
+                    const finalAmount = direction === 'expense' ? -numericAmount : numericAmount;
+                    await api.createTransaction({
+                        institutionId: selectedInstitutionId,
+                        categoryId,
+                        date,
+                        amount: finalAmount,
+                        description,
+                        type,
+                    });
+                }
             } else if (initialData) {
+                const finalAmount = direction === 'expense' ? -numericAmount : numericAmount;
                 await api.updateTransaction(initialData.id, {
                     categoryId,
                     date,
@@ -116,25 +160,47 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                     </h2>
 
                     <form onSubmit={handleSubmit}>
-                        {mode === 'create' && (
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Conta *
-                                </label>
-                                <select
-                                    value={accountId}
-                                    onChange={(e) => setAccountId(parseInt(e.target.value))}
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                >
-                                    <option value={0} disabled>Selecione uma conta</option>
-                                    {accounts.map((acc) => (
-                                        <option key={acc.id} value={acc.id}>
-                                            {acc.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                        {mode === 'create' && institutionsConfig && (
+                            <>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                        Instituição *
+                                    </label>
+                                    <select
+                                        value={selectedInstitutionId}
+                                        onChange={(e) => setSelectedInstitutionId(e.target.value)}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        required
+                                    >
+                                        <option value="" disabled>Selecione uma instituição</option>
+                                        {institutionsConfig.institutions.map((institution) => (
+                                            <option key={institution.id} value={institution.id}>
+                                                {institution.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {selectedInstitutionId && availableAccountTypes.length > 0 && (
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Tipo de Conta *
+                                        </label>
+                                        <select
+                                            value={type}
+                                            onChange={(e) => setType(e.target.value as 'credit_card' | 'checking')}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            required
+                                        >
+                                            {availableAccountTypes.map((accountType) => (
+                                                <option key={accountType} value={accountType}>
+                                                    {institutionsConfig.accountTypeLabels[accountType]}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         <div className="mb-4">
@@ -209,20 +275,59 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                         </div>
 
                         {mode === 'create' && (
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    Tipo de Conta *
-                                </label>
-                                <select
-                                    value={type}
-                                    onChange={(e) => setType(e.target.value as 'credit_card' | 'checking')}
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    required
-                                >
-                                    <option value="credit_card">Cartão de Crédito</option>
-                                    <option value="checking">Conta Corrente</option>
-                                </select>
-                            </div>
+                            <>
+                                <div className="mb-4">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={isInstallment}
+                                            onChange={(e) => setIsInstallment(e.target.checked)}
+                                            className="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <span className="text-sm font-medium text-slate-700">
+                                            É um parcelamento?
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {isInstallment && (
+                                    <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                        <div className="mb-3">
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                Número de Parcelas *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="2"
+                                                max="120"
+                                                value={totalInstallments}
+                                                onChange={(e) => setTotalInstallments(parseInt(e.target.value) || 2)}
+                                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                Entre 2 e 120 parcelas
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-3 p-3 bg-white rounded border border-purple-300">
+                                            <p className="text-sm text-slate-700">
+                                                <span className="font-semibold">Valor total:</span> R$ {parseFloat(amount || '0').toFixed(2)}
+                                            </p>
+                                            <p className="text-sm text-slate-700 mt-1">
+                                                <span className="font-semibold">Valor por parcela:</span> R${' '}
+                                                {totalInstallments > 0
+                                                    ? (parseFloat(amount || '0') / totalInstallments).toFixed(2)
+                                                    : '0.00'}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                Serão criadas {totalInstallments} transações mensais começando em{' '}
+                                                {date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
 
                         <div className="mb-6">

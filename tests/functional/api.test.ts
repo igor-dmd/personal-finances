@@ -604,14 +604,13 @@ describe('API Functional Tests', () => {
 
         describe('POST /transactions', () => {
             it('should create manual transaction successfully', async () => {
-                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
                 const [category] = await db.insert(categories).values({ name: 'Food' }).returning();
 
                 const res = await app.request('/transactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        accountId: account.id,
+                        institutionId: 'nubank',
                         categoryId: category.id,
                         date: '2024-01-15',
                         amount: -50.75,
@@ -634,13 +633,11 @@ describe('API Functional Tests', () => {
             });
 
             it('should create transaction with null categoryId', async () => {
-                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
-
                 const res = await app.request('/transactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        accountId: account.id,
+                        institutionId: 'nubank',
                         categoryId: null,
                         date: '2024-01-15',
                         amount: 100,
@@ -660,7 +657,7 @@ describe('API Functional Tests', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        accountId: 1,
+                        institutionId: 'nubank',
                         // Missing date, amount, description, type
                     }),
                 });
@@ -669,13 +666,11 @@ describe('API Functional Tests', () => {
             });
 
             it('should return 400 for invalid transaction type', async () => {
-                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
-
                 const res = await app.request('/transactions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        accountId: account.id,
+                        institutionId: 'nubank',
                         date: '2024-01-15',
                         amount: 100,
                         description: 'Test',

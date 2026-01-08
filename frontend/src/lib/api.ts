@@ -11,6 +11,8 @@ export interface Transaction {
     categoryId: number | null;
     categoryName: string | null;
     type: 'credit_card' | 'checking' | string;
+    installmentGroupId: number | null;
+    installmentNumber: number | null;
 }
 
 export interface Category {
@@ -27,12 +29,55 @@ export interface Account {
 }
 
 export interface CreateTransactionData {
-    accountId: number;
+    institutionId: string;
     categoryId: number | null;
     date: string; // ISO string
     amount: number;
     description: string;
     type: 'credit_card' | 'checking';
+}
+
+export interface InstallmentGroup {
+    id: number;
+    description: string;
+    totalInstallments: number;
+    totalAmount: number;
+    paidInstallments: number;
+    paidAmount: number;
+    remainingAmount: number;
+    createdAt: string;
+}
+
+export interface FutureInstallment {
+    installmentNumber: number;
+    dueDate: string | null;
+    amount: number;
+}
+
+export interface InstallmentGroupDetail extends InstallmentGroup {
+    transactions: Transaction[];
+    futureInstallments: FutureInstallment[];
+}
+
+export interface CreateInstallmentData {
+    description: string;
+    totalInstallments: number;
+    totalAmount: number;
+    firstInstallmentDate: string;
+    institutionId: string;
+    type: 'credit_card' | 'checking';
+    categoryId?: number | null;
+}
+
+export interface InstitutionConfig {
+    id: string;
+    name: string;
+    accountTypes: ('credit_card' | 'checking')[];
+}
+
+export interface InstitutionsConfig {
+    institutions: InstitutionConfig[];
+    accountTypeLabels: Record<string, string>;
 }
 
 export const api = {
@@ -137,6 +182,14 @@ export const api = {
         return response.json();
     },
 
+    getInstitutionsConfig: async (): Promise<InstitutionsConfig> => {
+        const response = await fetch(`${API_URL}/transactions/institutions-config`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch institutions config');
+        }
+        return response.json();
+    },
+
     createTransaction: async (data: CreateTransactionData): Promise<{ success: boolean; transaction: Transaction }> => {
         const response = await fetch(`${API_URL}/transactions`, {
             method: 'POST',
@@ -158,6 +211,62 @@ export const api = {
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Failed to delete transaction');
+        }
+        return response.json();
+    },
+
+    // Installment methods
+    getInstallments: async (): Promise<InstallmentGroup[]> => {
+        const response = await fetch(`${API_URL}/installments`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch installments');
+        }
+        return response.json();
+    },
+
+    getInstallmentDetail: async (id: number): Promise<InstallmentGroupDetail> => {
+        const response = await fetch(`${API_URL}/installments/${id}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch installment detail');
+        }
+        return response.json();
+    },
+
+    createInstallment: async (data: CreateInstallmentData): Promise<{ success: boolean; groupId: number; created: number }> => {
+        const response = await fetch(`${API_URL}/installments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to create installment');
+        }
+        return response.json();
+    },
+
+    updateInstallment: async (id: number, data: Partial<InstallmentGroup>): Promise<{ success: boolean }> => {
+        const response = await fetch(`${API_URL}/installments/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update installment');
+        }
+        return response.json();
+    },
+
+    deleteInstallment: async (id: number): Promise<{ success: boolean; message: string }> => {
+        const response = await fetch(`${API_URL}/installments/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete installment');
         }
         return response.json();
     }

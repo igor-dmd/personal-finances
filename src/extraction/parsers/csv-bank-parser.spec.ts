@@ -29,14 +29,26 @@ describe('CsvBankParser', () => {
             date: new Date('2023-12-01T00:00:00.000Z'), // csv-parse/Date behavior might need UTC adjustment if not specified, but usually defaults to 00:00 UTC for date-only strings in JS Date parsing.
             amount: 24.90,
             description: 'Uber',
-            originalDescription: 'Uber'
+            originalDescription: 'Uber',
+            installmentInfo: {
+                merchantName: 'Uber',
+                currentInstallment: 0,
+                totalInstallments: 0,
+                hasInstallmentInfo: false,
+            }
         });
 
         expect(transactions[1]).toEqual({
             date: new Date('2023-12-02T00:00:00.000Z'),
             amount: 45.50,
             description: 'McDonalds',
-            originalDescription: 'McDonalds'
+            originalDescription: 'McDonalds',
+            installmentInfo: {
+                merchantName: 'McDonalds',
+                currentInstallment: 0,
+                totalInstallments: 0,
+                hasInstallmentInfo: false,
+            }
         });
     });
 

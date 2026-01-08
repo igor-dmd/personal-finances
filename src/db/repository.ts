@@ -1,6 +1,6 @@
 import { db } from './index';
-import { accounts, importJobs, transactions, categories } from './schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { accounts, importJobs, transactions, categories, installmentGroups } from './schema';
+import { eq, and, sql, isNull } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
 export class FinanceRepository {
@@ -65,6 +65,8 @@ export class FinanceRepository {
             accountName: accounts.name,
             categoryId: transactions.categoryId,
             categoryName: categories.name,
+            installmentGroupId: transactions.installmentGroupId,
+            installmentNumber: transactions.installmentNumber,
         })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -77,22 +79,84 @@ export class FinanceRepository {
     }
 
     async saveTransactions(drafts: TransactionDraft[], accountId: number, importJobId: number, transactionType: string) {
-        const txs = drafts.map(draft => ({
-            accountId,
-            importJobId,
-            date: draft.date,
-            amount: draft.amount,
-            description: draft.description,
-            originalDescription: draft.originalDescription,
-            type: transactionType,
-        }));
+        if (drafts.length === 0) return;
 
-        // Batch insert could be better, but sqlite limits vars per statement.
-        // For small batches, simple insert is fine.
-        // We will insert one by one or in small batches.
-        if (txs.length === 0) return;
+        // Separate transactions with installment info from regular ones
+        const installmentDrafts: TransactionDraft[] = [];
+        const regularDrafts: TransactionDraft[] = [];
 
-        await db.insert(transactions).values(txs).run();
+        for (const draft of drafts) {
+            if (draft.installmentInfo?.hasInstallmentInfo) {
+                installmentDrafts.push(draft);
+            } else {
+                regularDrafts.push(draft);
+            }
+        }
+
+        // Process installment transactions: group by merchant + total installments
+        if (installmentDrafts.length > 0) {
+            const groupMap = new Map<string, TransactionDraft[]>();
+
+            for (const draft of installmentDrafts) {
+                const info = draft.installmentInfo!;
+                const key = `${info.merchantName}|${info.totalInstallments}`;
+
+                if (!groupMap.has(key)) {
+                    groupMap.set(key, []);
+                }
+                groupMap.get(key)!.push(draft);
+            }
+
+            // Create installment groups and transactions
+            for (const [key, groupDrafts] of groupMap) {
+                const [merchantName, totalInstallmentsStr] = key.split('|');
+                const totalInstallments = parseInt(totalInstallmentsStr, 10);
+                const totalAmount = Math.abs(groupDrafts.reduce((sum, d) => sum + d.amount, 0));
+
+                // Create installment group
+                const group = await db
+                    .insert(installmentGroups)
+                    .values({
+                        description: merchantName,
+                        totalInstallments,
+                        totalAmount,
+                    })
+                    .returning()
+                    .get();
+
+                // Create transactions with group link
+                for (const draft of groupDrafts) {
+                    await db.insert(transactions).values({
+                        accountId,
+                        importJobId,
+                        date: draft.date,
+                        amount: draft.amount,
+                        description: draft.description,
+                        originalDescription: draft.originalDescription,
+                        type: transactionType,
+                        installmentGroupId: group.id,
+                        installmentNumber: draft.installmentInfo!.currentInstallment,
+                    }).run();
+                }
+            }
+        }
+
+        // Process regular transactions
+        if (regularDrafts.length > 0) {
+            const txs = regularDrafts.map(draft => ({
+                accountId,
+                importJobId,
+                date: draft.date,
+                amount: draft.amount,
+                description: draft.description,
+                originalDescription: draft.originalDescription,
+                type: transactionType,
+                installmentGroupId: null,
+                installmentNumber: null,
+            }));
+
+            await db.insert(transactions).values(txs).run();
+        }
     }
 
     async countTransactionsByDescription(description: string): Promise<number> {
@@ -159,5 +223,118 @@ export class FinanceRepository {
             .run();
 
         return { count: result.changes };
+    }
+
+    // ==================== Installment Methods ====================
+
+    async createInstallmentGroup(
+        description: string,
+        totalInstallments: number,
+        totalAmount: number
+    ): Promise<number> {
+        const result = await db
+            .insert(installmentGroups)
+            .values({ description, totalInstallments, totalAmount })
+            .returning()
+            .get();
+        return result.id;
+    }
+
+    async getInstallmentGroup(groupId: number) {
+        const group = await db
+            .select()
+            .from(installmentGroups)
+            .where(eq(installmentGroups.id, groupId))
+            .get();
+
+        if (!group) return null;
+
+        const txs = await db
+            .select()
+            .from(transactions)
+            .where(eq(transactions.installmentGroupId, groupId))
+            .orderBy(transactions.installmentNumber)
+            .all();
+
+        return { ...group, transactions: txs };
+    }
+
+    async getInstallmentGroups() {
+        const groups = await db.select().from(installmentGroups).all();
+
+        // For each group, calculate paid installments and amounts
+        const enriched = await Promise.all(
+            groups.map(async (group) => {
+                const result = await db
+                    .select({
+                        count: sql<number>`count(*)`,
+                        paidAmount: sql<number>`COALESCE(SUM(ABS(amount)), 0)`,
+                    })
+                    .from(transactions)
+                    .where(eq(transactions.installmentGroupId, group.id))
+                    .get();
+
+                const paidInstallments = result?.count || 0;
+                const paidAmount = result?.paidAmount || 0;
+                const remainingAmount = group.totalAmount - paidAmount;
+
+                return {
+                    ...group,
+                    paidInstallments,
+                    paidAmount,
+                    remainingAmount,
+                };
+            })
+        );
+
+        return enriched;
+    }
+
+    async updateInstallmentGroup(
+        groupId: number,
+        data: { description?: string; totalInstallments?: number; totalAmount?: number }
+    ) {
+        return await db
+            .update(installmentGroups)
+            .set(data)
+            .where(eq(installmentGroups.id, groupId))
+            .run();
+    }
+
+    async deleteInstallmentGroup(groupId: number) {
+        // Cascade delete will handle transactions automatically
+        await db.delete(installmentGroups).where(eq(installmentGroups.id, groupId)).run();
+    }
+
+    async getFutureInstallments(groupId: number) {
+        const group = await this.getInstallmentGroup(groupId);
+        if (!group) return [];
+
+        const existingTxs = group.transactions;
+        const installmentAmount = group.totalAmount / group.totalInstallments;
+
+        // Find which installments haven't been paid yet
+        const futureInstallments = [];
+        for (let i = 1; i <= group.totalInstallments; i++) {
+            const existing = existingTxs.find((tx: any) => tx.installmentNumber === i);
+            if (!existing) {
+                // Estimate due date based on previous installments
+                let estimatedDate = null;
+                if (existingTxs.length > 0) {
+                    const lastTx = existingTxs[existingTxs.length - 1] as any;
+                    const monthsAhead = i - (lastTx.installmentNumber || 1);
+                    estimatedDate = new Date(lastTx.date);
+                    estimatedDate.setMonth(estimatedDate.getMonth() + monthsAhead);
+                }
+
+                futureInstallments.push({
+                    installmentNumber: i,
+                    dueDate: estimatedDate,
+                    amount: installmentAmount,
+                });
+            }
+        }
+
+        return futureInstallments;
     }
 }

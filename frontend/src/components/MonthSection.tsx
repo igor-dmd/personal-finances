@@ -13,6 +13,8 @@ export interface DisplayTransaction {
     categoryId: number | null;
     amount: number;
     type: 'credit_card' | 'checking' | string;
+    installmentGroupId: number | null;
+    installmentNumber: number | null;
 }
 
 interface MonthSectionProps {
@@ -49,6 +51,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
     const [showBulkOption, setShowBulkOption] = React.useState(false);
     const [matchingCount, setMatchingCount] = React.useState<number>(0);
     const [isBulkUpdating, setIsBulkUpdating] = React.useState(false);
+    const [installmentGroups, setInstallmentGroups] = React.useState<Map<number, { totalInstallments: number }>>(new Map());
 
     // Calculate totals for this month
     const { income, expenses } = React.useMemo(() => {
@@ -72,6 +75,32 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
         setEditingId(t.id);
         setSelectedCategoryId(t.categoryId);
     };
+
+    // Fetch installment group data for transactions with installments
+    React.useEffect(() => {
+        const fetchInstallmentGroups = async () => {
+            const groupIds = new Set<number>();
+            transactions.forEach(t => {
+                if (t.installmentGroupId) {
+                    groupIds.add(t.installmentGroupId);
+                }
+            });
+
+            if (groupIds.size > 0) {
+                const groups = new Map<number, { totalInstallments: number }>();
+                for (const groupId of groupIds) {
+                    try {
+                        const group = await api.getInstallmentDetail(groupId);
+                        groups.set(groupId, { totalInstallments: group.totalInstallments });
+                    } catch (err) {
+                        console.error(`Failed to fetch installment group ${groupId}`, err);
+                    }
+                }
+                setInstallmentGroups(groups);
+            }
+        };
+        fetchInstallmentGroups();
+    }, [transactions]);
 
     React.useEffect(() => {
         const fetchCount = async () => {
@@ -193,7 +222,16 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                                 <AccountTypeIcon type={t.type} />
                                             </td>
                                             <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{t.date}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-900">{t.description}</td>
+                                            <td className="px-6 py-4 font-medium text-slate-900">
+                                                <div className="flex items-center gap-2">
+                                                    <span>{t.description}</span>
+                                                    {t.installmentGroupId && t.installmentNumber && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                                            {t.installmentNumber}/{installmentGroups.get(t.installmentGroupId)?.totalInstallments || '?'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 {editingId === t.id ? (
                                                     <div className="flex flex-col gap-2">
