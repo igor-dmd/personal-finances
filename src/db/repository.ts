@@ -105,6 +105,49 @@ export class FinanceRepository {
         return result?.count || 0;
     }
 
+    async createTransaction(data: {
+        accountId: number;
+        categoryId: number | null;
+        date: Date;
+        amount: number;
+        description: string;
+        type: string;
+    }) {
+        const result = await db.insert(transactions).values({
+            accountId: data.accountId,
+            categoryId: data.categoryId,
+            date: data.date,
+            amount: data.amount,
+            description: data.description,
+            originalDescription: data.description,
+            type: data.type,
+            importJobId: null,
+        }).returning().get();
+        return result;
+    }
+
+    async deleteTransaction(id: number) {
+        const transaction = await db
+            .select({ importJobId: transactions.importJobId })
+            .from(transactions)
+            .where(eq(transactions.id, id))
+            .get();
+
+        if (!transaction) {
+            throw new Error('Transaction not found');
+        }
+
+        if (transaction.importJobId !== null) {
+            throw new Error('Cannot delete imported transactions. Delete the import job instead.');
+        }
+
+        await db.delete(transactions).where(eq(transactions.id, id)).run();
+    }
+
+    async getAccounts() {
+        return await db.select().from(accounts).all();
+    }
+
     async updateTransactionsByDescription(
         description: string,
         categoryId: number | null

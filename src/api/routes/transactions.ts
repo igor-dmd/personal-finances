@@ -26,6 +26,27 @@ const bulkUpdateCategorySchema = z.object({
     categoryId: z.number().nullable(),
 });
 
+const createTransactionSchema = z.object({
+    accountId: z.number().int().positive('Account ID é obrigatório'),
+    categoryId: z.number().int().positive().nullable().optional(),
+    date: z.coerce.date(),
+    amount: z.number(),
+    description: z.string().min(1, 'Descrição é obrigatória'),
+    type: z.enum(['credit_card', 'checking'], {
+        errorMap: () => ({ message: 'Tipo deve ser credit_card ou checking' })
+    }),
+});
+
+transactions.get('/accounts', async (c) => {
+    try {
+        const data = await repo.getAccounts();
+        return c.json(data);
+    } catch (error: any) {
+        console.error('[API] Error fetching accounts:', error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
 transactions.get('/parser-types', (c) => {
     return c.json(processor.getAvailableParsers());
 });
@@ -89,6 +110,28 @@ transactions.patch('/:id', zValidator('json', updateTransactionSchema), async (c
     }
 });
 
+transactions.delete('/:id', async (c) => {
+    try {
+        const id = parseInt(c.req.param('id'));
+        if (isNaN(id)) {
+            return c.json({ error: 'ID inválido' }, 400);
+        }
+
+        console.log(`[API] Deleting transaction ${id}...`);
+        await repo.deleteTransaction(id);
+
+        return c.json({
+            success: true,
+            message: 'Transação excluída com sucesso'
+        });
+    } catch (error: any) {
+        console.error(`[API] Error deleting transaction ${c.req.param('id')}:`, error);
+        const status = error.message.includes('not found') ? 404 :
+                      error.message.includes('Cannot delete') ? 403 : 500;
+        return c.json({ error: error.message }, status);
+    }
+});
+
 transactions.get('/', async (c) => {
     try {
         console.log('[API] Fetching transactions...');
@@ -96,6 +139,23 @@ transactions.get('/', async (c) => {
         return c.json(data);
     } catch (error: any) {
         console.error('[API] Error fetching transactions:', error);
+        return c.json({ error: error.message }, 500);
+    }
+});
+
+transactions.post('/', zValidator('json', createTransactionSchema), async (c) => {
+    try {
+        const data = c.req.valid('json');
+        console.log('[API] Creating manual transaction...', data);
+
+        const result = await repo.createTransaction(data);
+
+        return c.json({
+            success: true,
+            transaction: result
+        });
+    } catch (error: any) {
+        console.error('[API] Error creating transaction:', error);
         return c.json({ error: error.message }, 500);
     }
 });

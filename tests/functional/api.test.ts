@@ -579,4 +579,184 @@ describe('API Functional Tests', () => {
             });
         });
     });
+
+    describe('Manual Transaction CRUD', () => {
+        describe('GET /transactions/accounts', () => {
+            it('should return list of accounts', async () => {
+                await repo.getOrCreateAccount('Test Bank', 'bank');
+                await repo.getOrCreateAccount('Credit Card', 'credit_card');
+
+                const res = await app.request('/transactions/accounts');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data).toHaveLength(2);
+                expect(data.some((a: any) => a.name === 'Test Bank')).toBe(true);
+                expect(data.some((a: any) => a.name === 'Credit Card')).toBe(true);
+            });
+
+            it('should return empty array when no accounts exist', async () => {
+                const res = await app.request('/transactions/accounts');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data).toEqual([]);
+            });
+        });
+
+        describe('POST /transactions', () => {
+            it('should create manual transaction successfully', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const [category] = await db.insert(categories).values({ name: 'Food' }).returning();
+
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: account.id,
+                        categoryId: category.id,
+                        date: '2024-01-15',
+                        amount: -50.75,
+                        description: 'Manual Restaurant',
+                        type: 'credit_card',
+                    }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+                expect(data.transaction).toBeDefined();
+                expect(data.transaction.description).toBe('Manual Restaurant');
+                expect(data.transaction.amount).toBe(-50.75);
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                expect(txList).toHaveLength(1);
+                expect(txList[0].description).toBe('Manual Restaurant');
+            });
+
+            it('should create transaction with null categoryId', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: account.id,
+                        categoryId: null,
+                        date: '2024-01-15',
+                        amount: 100,
+                        description: 'Uncategorized Income',
+                        type: 'checking',
+                    }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+                expect(data.transaction.categoryId).toBeNull();
+            });
+
+            it('should return 400 for missing required fields', async () => {
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: 1,
+                        // Missing date, amount, description, type
+                    }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should return 400 for invalid transaction type', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        accountId: account.id,
+                        date: '2024-01-15',
+                        amount: 100,
+                        description: 'Test',
+                        type: 'invalid_type',
+                    }),
+                });
+
+                expect(res.status).toBe(400);
+            });
+        });
+
+        describe('DELETE /transactions/:id', () => {
+            it('should delete manual transaction successfully', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const transaction = await repo.createTransaction({
+                    accountId: account.id,
+                    categoryId: null,
+                    date: new Date('2024-01-15'),
+                    amount: -50,
+                    description: 'Manual Transaction',
+                    type: 'credit_card',
+                });
+
+                const res = await app.request(`/transactions/${transaction.id}`, {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+                expect(data.message).toBe('Transação excluída com sucesso');
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                expect(txList).toHaveLength(0);
+            });
+
+            it('should return 404 for non-existent transaction', async () => {
+                const res = await app.request('/transactions/99999', {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(404);
+                const data = await res.json();
+                expect(data.error).toBe('Transaction not found');
+            });
+
+            it('should return 403 when trying to delete imported transaction', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                await repo.saveTransactions([
+                    { date: new Date(), amount: 100, description: 'Imported', originalDescription: 'Imported' }
+                ], account.id, job.id, 'credit_card');
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                const importedTx = txList[0];
+
+                const res = await app.request(`/transactions/${importedTx.id}`, {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(403);
+                const data = await res.json();
+                expect(data.error).toBe('Cannot delete imported transactions. Delete the import job instead.');
+
+                const checkRes = await app.request('/transactions');
+                const checkList = await checkRes.json();
+                expect(checkList).toHaveLength(1);
+            });
+
+            it('should return 400 for invalid ID format', async () => {
+                const res = await app.request('/transactions/invalid', {
+                    method: 'DELETE',
+                });
+
+                expect(res.status).toBe(400);
+                const data = await res.json();
+                expect(data.error).toBe('ID inválido');
+            });
+        });
+    });
 });

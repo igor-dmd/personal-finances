@@ -19,6 +19,22 @@ export interface Category {
     parentId: number | null;
 }
 
+export interface Account {
+    id: number;
+    name: string;
+    type: 'bank' | 'credit_card' | 'checking';
+    currency: string;
+}
+
+export interface CreateTransactionData {
+    accountId: number;
+    categoryId: number | null;
+    date: string; // ISO string
+    amount: number;
+    description: string;
+    type: 'credit_card' | 'checking';
+}
+
 export const api = {
     getTransactions: async (): Promise<Transaction[]> => {
         const response = await fetch(`${API_URL}/transactions`);
@@ -109,6 +125,39 @@ export const api = {
         });
         if (!response.ok) {
             throw new Error('Failed to bulk update categories');
+        }
+        return response.json();
+    },
+
+    getAccounts: async (): Promise<Account[]> => {
+        const response = await fetch(`${API_URL}/transactions/accounts`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch accounts');
+        }
+        return response.json();
+    },
+
+    createTransaction: async (data: CreateTransactionData): Promise<{ success: boolean; transaction: Transaction }> => {
+        const response = await fetch(`${API_URL}/transactions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to create transaction');
+        }
+        return response.json();
+    },
+
+    deleteTransaction: async (id: number): Promise<{ success: boolean; message: string }> => {
+        const response = await fetch(`${API_URL}/transactions/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete transaction');
         }
         return response.json();
     }

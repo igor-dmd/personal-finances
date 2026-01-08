@@ -3,10 +3,12 @@ import { SegmentedControl } from '../components/SegmentedControl';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { TransactionStats } from '../components/TransactionStats';
 import { MonthlyTimeline } from '../components/MonthlyTimeline';
+import { TransactionFormModal } from '../components/TransactionFormModal';
+import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import type { DisplayTransaction } from '../components/MonthSection';
 import { formatDate } from '../utils/date';
 import { api } from '../lib/api';
-import type { Transaction, Category } from '../lib/api';
+import type { Transaction, Category, Account } from '../lib/api';
 
 type FilterType = 'all' | 'income' | 'expenses';
 
@@ -25,6 +27,7 @@ interface Filters {
 export const Transactions: React.FC = () => {
     const [transactions, setTransactions] = React.useState<DisplayTransaction[]>([]);
     const [categories, setCategories] = React.useState<Category[]>([]);
+    const [accounts, setAccounts] = React.useState<Account[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [filters, setFilters] = React.useState<Filters>({
@@ -32,12 +35,17 @@ export const Transactions: React.FC = () => {
         accountType: 'all',
         categoryId: null
     });
+    const [isFormModalOpen, setIsFormModalOpen] = React.useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+    const [selectedTransaction, setSelectedTransaction] = React.useState<DisplayTransaction | null>(null);
+    const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
 
     const loadData = async () => {
         try {
-            const [txData, catData] = await Promise.all([
+            const [txData, catData, accData] = await Promise.all([
                 api.getTransactions(),
-                api.getCategories()
+                api.getCategories(),
+                api.getAccounts()
             ]);
 
             // Map API data to component expectations
@@ -54,6 +62,7 @@ export const Transactions: React.FC = () => {
 
             setTransactions(formatted);
             setCategories(catData);
+            setAccounts(accData);
         } catch (err) {
             console.error(err);
             setError('Falha ao carregar transações');
@@ -102,6 +111,39 @@ export const Transactions: React.FC = () => {
         }
     };
 
+    const handleAddTransaction = () => {
+        setFormMode('create');
+        setSelectedTransaction(null);
+        setIsFormModalOpen(true);
+    };
+
+    const handleEditTransaction = (transaction: DisplayTransaction) => {
+        setFormMode('edit');
+        setSelectedTransaction(transaction);
+        setIsFormModalOpen(true);
+    };
+
+    const handleDeleteClick = (transaction: DisplayTransaction) => {
+        setSelectedTransaction(transaction);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleSaveTransaction = async () => {
+        setIsFormModalOpen(false);
+        await loadData();
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!selectedTransaction) return;
+        try {
+            await api.deleteTransaction(selectedTransaction.id);
+            setIsDeleteModalOpen(false);
+            await loadData();
+        } catch (err: any) {
+            alert(err.message);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando transações...</div>;
     if (error) return <div className="p-8 text-center text-rose-500">{error}</div>;
 
@@ -124,11 +166,22 @@ export const Transactions: React.FC = () => {
                         <h2 className="text-2xl font-bold text-slate-800">Transações</h2>
                         <p className="text-slate-500 mt-1">Visualize e gerencie suas transações financeiras</p>
                     </div>
-                    <SegmentedControl
-                        options={FILTER_OPTIONS}
-                        value={filters.direction}
-                        onChange={(value) => setFilters({ ...filters, direction: value })}
-                    />
+                    <div className="flex gap-3 items-center">
+                        <button
+                            onClick={handleAddTransaction}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                            Adicionar Transação
+                        </button>
+                        <SegmentedControl
+                            options={FILTER_OPTIONS}
+                            value={filters.direction}
+                            onChange={(value) => setFilters({ ...filters, direction: value })}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
@@ -154,6 +207,26 @@ export const Transactions: React.FC = () => {
                 categories={categories}
                 onUpdateCategory={handleUpdateCategory}
                 onBulkUpdateCategory={handleBulkUpdateCategory}
+                onEditTransaction={handleEditTransaction}
+                onDeleteTransaction={handleDeleteClick}
+            />
+
+            <TransactionFormModal
+                isOpen={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                onSave={handleSaveTransaction}
+                accounts={accounts}
+                categories={categories}
+                initialData={selectedTransaction}
+                mode={formMode}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                transactionDescription={selectedTransaction?.description || ''}
+                transactionAmount={selectedTransaction?.amount || 0}
             />
         </div>
     );

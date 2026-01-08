@@ -8,13 +8,17 @@ interface MonthlyTimelineProps {
     categories: Category[];
     onUpdateCategory: (transactionId: number, categoryId: number | null) => Promise<void>;
     onBulkUpdateCategory: (description: string, categoryId: number | null) => Promise<void>;
+    onEditTransaction: (transaction: DisplayTransaction) => void;
+    onDeleteTransaction: (transaction: DisplayTransaction) => void;
 }
 
 export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
     transactions,
     categories,
     onUpdateCategory,
-    onBulkUpdateCategory
+    onBulkUpdateCategory,
+    onEditTransaction,
+    onDeleteTransaction
 }) => {
     const [expandedMonths, setExpandedMonths] = React.useState<Set<string>>(() => {
         return new Set([getCurrentMonthKey()]);
@@ -57,6 +61,8 @@ export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
                     onToggle={() => toggleMonth(group.key)}
                     onUpdateCategory={onUpdateCategory}
                     onBulkUpdateCategory={onBulkUpdateCategory}
+                    onEditTransaction={onEditTransaction}
+                    onDeleteTransaction={onDeleteTransaction}
                     isFirst={index === 0}
                     isLast={index === monthGroups.length - 1}
                 />
