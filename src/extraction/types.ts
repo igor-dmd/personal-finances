@@ -1,3 +1,5 @@
+import type { InstallmentInfo } from './utils/installment-parser';
+
 export const TRANSACTION_TYPES = {
     CREDIT_CARD: 'credit_card',
     CHECKING: 'checking',
@@ -11,6 +13,7 @@ export interface TransactionDraft {
     amount: number;
     description: string;
     originalDescription?: string;
+    installmentInfo?: InstallmentInfo;
 }
 
 export interface BillParser {

@@ -23,6 +23,14 @@ export const importJobs = sqliteTable('import_jobs', {
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
 
+export const installmentGroups = sqliteTable('installment_groups', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    description: text('description').notNull(),
+    totalInstallments: integer('total_installments').notNull(),
+    totalAmount: real('total_amount').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
 export const transactions = sqliteTable('transactions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     accountId: integer('account_id').references(() => accounts.id).notNull(),
@@ -33,4 +41,6 @@ export const transactions = sqliteTable('transactions', {
     description: text('description').notNull(),
     originalDescription: text('original_description'),
     type: text('type').notNull().default('credit_card'),
+    installmentGroupId: integer('installment_group_id').references(() => installmentGroups.id, { onDelete: 'cascade' }),
+    installmentNumber: integer('installment_number'),
 });

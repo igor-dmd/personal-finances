@@ -2,6 +2,7 @@
 import { parse } from 'csv-parse/sync';
 import { BillParser, TransactionDraft, TRANSACTION_TYPES } from '../types';
 import { normalizeDescription } from '../normalizers/description-normalizer';
+import { parseInstallmentFromDescription } from '../utils/installment-parser';
 
 interface NubankCheckingRecord {
     Data: string;
@@ -35,6 +36,7 @@ export class NubankCheckingParser implements BillParser {
             .map(record => {
                 const amount = parseFloat(record.Valor);
                 const description = normalizeDescription(record.Descrição);
+                const installmentInfo = parseInstallmentFromDescription(record.Descrição);
 
                 // Parse date: DD/MM/YYYY
                 const [day, month, year] = record.Data.split('/').map(Number);
@@ -45,6 +47,7 @@ export class NubankCheckingParser implements BillParser {
                     amount,
                     description,
                     originalDescription: record.Descrição,
+                    installmentInfo,
                 };
             });
     }

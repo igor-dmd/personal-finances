@@ -1,6 +1,7 @@
 import { parse } from 'csv-parse/sync';
 import { BillParser, TransactionDraft, TRANSACTION_TYPES } from '../types';
 import { validateCsvHeaders, KNOWN_HEADERS, suggestParser } from '../utils/header-validator';
+import { parseInstallmentFromDescription } from '../utils/installment-parser';
 
 interface NubankRecord {
     date: string;
@@ -42,11 +43,14 @@ export class CsvBankParser implements BillParser {
 
         // Nubank format: date,title,amount
         return records.map((record) => {
+            const installmentInfo = parseInstallmentFromDescription(record.title);
+
             return {
                 date: new Date(record.date),
                 amount: parseFloat(record.amount),
                 description: record.title,
                 originalDescription: record.title,
+                installmentInfo,
             };
         });
     }
