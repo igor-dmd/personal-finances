@@ -1,3 +1,8 @@
+---
+name: add-route
+description: Scaffolds a new API route with Hono. Use when adding new API endpoints.
+---
+
 # Add Route Skill
 
 Scaffolds a new API route with Hono.

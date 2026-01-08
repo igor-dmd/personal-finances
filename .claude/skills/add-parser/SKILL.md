@@ -1,3 +1,8 @@
+---
+name: add-parser
+description: Creates a new bank statement parser for the extraction system. Use when adding support for a new bank or file format.
+---
+
 # Add Parser Skill
 
 Creates a new bank statement parser for the extraction system.

@@ -1,3 +1,8 @@
+---
+name: validate-feature
+description: Records a video demonstration of frontend functionality using Chrome browser plugin. Use after implementing UI changes.
+---
+
 # Validate Feature Skill
 
 Records a video demonstration of newly implemented frontend functionality using the Chrome browser plugin.

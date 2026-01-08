@@ -1,3 +1,8 @@
+---
+name: test-all
+description: Runs the complete test suite for both backend and frontend. Use to verify all tests pass.
+---
+
 # Test All Skill
 
 Runs the complete test suite for both backend and frontend.

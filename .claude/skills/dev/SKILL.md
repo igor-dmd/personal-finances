@@ -1,3 +1,8 @@
+---
+name: dev
+description: Starts both the backend API server and frontend development server. Use to start local development.
+---
+
 # Dev Skill
 
 Starts both the backend API server and frontend development server for local development.

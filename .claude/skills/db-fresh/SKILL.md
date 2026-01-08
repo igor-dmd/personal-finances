@@ -1,3 +1,8 @@
+---
+name: db-fresh
+description: Resets the database and reseeds it with sample data. Use to get a clean development state.
+---
+
 # Database Fresh Skill
 
 Resets the database and reseeds it with sample data. Useful during development to get a clean state.

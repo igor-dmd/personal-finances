@@ -1,3 +1,8 @@
+---
+name: migrate
+description: Generates and applies database migrations after schema changes. Use after modifying src/db/schema.ts.
+---
+
 # Migrate Skill
 
 Generates and applies database migrations after schema changes.
