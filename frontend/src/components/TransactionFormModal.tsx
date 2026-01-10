@@ -25,7 +25,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     const [amount, setAmount] = React.useState<string>('');
     const [direction, setDirection] = React.useState<'income' | 'expense'>('expense');
     const [description, setDescription] = React.useState<string>('');
-    const [type, setType] = React.useState<'credit_card' | 'checking'>('credit_card');
+    const [type, setType] = React.useState<'credit_card' | 'checking' | 'investment'>('credit_card');
     const [categoryId, setCategoryId] = React.useState<number | null>(null);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -33,6 +33,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     const [totalInstallments, setTotalInstallments] = React.useState<number>(2);
     const [institutionsConfig, setInstitutionsConfig] = React.useState<InstitutionsConfig | null>(null);
     const [selectedInstitutionId, setSelectedInstitutionId] = React.useState<string>('');
+    const [isInvestment, setIsInvestment] = React.useState(false);
 
     // Fetch institutions config on mount
     React.useEffect(() => {
@@ -55,13 +56,15 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                 setCategoryId(null);
                 setIsInstallment(false);
                 setTotalInstallments(2);
+                setIsInvestment(false);
             } else if (initialData) {
                 setDate(initialData.rawDate.split('T')[0]);
                 setAmount(Math.abs(initialData.amount).toString());
                 setDirection(initialData.amount >= 0 ? 'income' : 'expense');
                 setDescription(initialData.description);
-                setType(initialData.type as 'credit_card' | 'checking');
+                setType(initialData.type as 'credit_card' | 'checking' | 'investment');
                 setCategoryId(initialData.categoryId);
+                setIsInvestment(initialData.isInvestment ?? false);
             }
             setError(null);
         }
@@ -75,6 +78,13 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
             }
         }
     }, [selectedInstitutionId, selectedInstitution, type]);
+
+    // Clear category when investment type is selected
+    React.useEffect(() => {
+        if (type === 'investment' && categoryId !== null) {
+            setCategoryId(null);
+        }
+    }, [type]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -126,6 +136,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                         amount: finalAmount,
                         description,
                         type,
+                        isInvestment,
                     });
                 }
             } else if (initialData) {
@@ -135,6 +146,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                     date,
                     amount: finalAmount,
                     description,
+                    isInvestment,
                 });
             }
             await onSave();
@@ -188,7 +200,12 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                                         </label>
                                         <select
                                             value={type}
-                                            onChange={(e) => setType(e.target.value as 'credit_card' | 'checking')}
+                                            onChange={(e) => {
+                                                const newType = e.target.value as 'credit_card' | 'checking' | 'investment';
+                                                setType(newType);
+                                                // Auto-set isInvestment when investment type is selected
+                                                setIsInvestment(newType === 'investment');
+                                            }}
                                             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             required
                                         >
@@ -234,29 +251,56 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
 
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Tipo *
+                                {type === 'investment' ? 'Movimentação *' : 'Tipo *'}
                             </label>
                             <div className="flex gap-4">
-                                <label className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        value="income"
-                                        checked={direction === 'income'}
-                                        onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
-                                        className="mr-2"
-                                    />
-                                    <span className="text-sm text-slate-700">Receita</span>
-                                </label>
-                                <label className="flex items-center">
-                                    <input
-                                        type="radio"
-                                        value="expense"
-                                        checked={direction === 'expense'}
-                                        onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
-                                        className="mr-2"
-                                    />
-                                    <span className="text-sm text-slate-700">Despesa</span>
-                                </label>
+                                {type === 'investment' ? (
+                                    <>
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                value="expense"
+                                                checked={direction === 'expense'}
+                                                onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
+                                                className="mr-2"
+                                            />
+                                            <span className="text-sm text-slate-700">Investido</span>
+                                        </label>
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                value="income"
+                                                checked={direction === 'income'}
+                                                onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
+                                                className="mr-2"
+                                            />
+                                            <span className="text-sm text-slate-700">Resgatado</span>
+                                        </label>
+                                    </>
+                                ) : (
+                                    <>
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                value="income"
+                                                checked={direction === 'income'}
+                                                onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
+                                                className="mr-2"
+                                            />
+                                            <span className="text-sm text-slate-700">Receita</span>
+                                        </label>
+                                        <label className="flex items-center">
+                                            <input
+                                                type="radio"
+                                                value="expense"
+                                                checked={direction === 'expense'}
+                                                onChange={(e) => setDirection(e.target.value as 'income' | 'expense')}
+                                                className="mr-2"
+                                            />
+                                            <span className="text-sm text-slate-700">Despesa</span>
+                                        </label>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -273,6 +317,22 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                                 required
                             />
                         </div>
+
+                        {mode === 'edit' && (
+                            <div className="mb-4">
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isInvestment}
+                                        onChange={(e) => setIsInvestment(e.target.checked)}
+                                        className="mr-2 h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">
+                                        É um investimento?
+                                    </span>
+                                </label>
+                            </div>
+                        )}
 
                         {mode === 'create' && (
                             <>
@@ -330,17 +390,20 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
                             </>
                         )}
 
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
-                                Categoria
-                            </label>
-                            <CategoryCombobox
-                                categories={categories}
-                                selectedCategoryId={categoryId}
-                                onSelect={setCategoryId}
-                                disabled={loading}
-                            />
-                        </div>
+                        {/* Hide category for investment transactions */}
+                        {((mode === 'create' && type !== 'investment') || (mode === 'edit' && !isInvestment)) && (
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                    Categoria
+                                </label>
+                                <CategoryCombobox
+                                    categories={categories}
+                                    selectedCategoryId={categoryId}
+                                    onSelect={setCategoryId}
+                                    disabled={loading}
+                                />
+                            </div>
+                        )}
 
                         {error && (
                             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 text-sm">

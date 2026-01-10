@@ -3,6 +3,7 @@ import { Transactions } from './views/Transactions';
 import { Import } from './views/Import';
 import { Categories } from './views/Categories';
 import { Installments } from './views/Installments';
+import { Investments } from './views/Investments';
 import { Layout } from './components/Layout';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route path="categories" element={<Categories />} />
           <Route path="import" element={<Import />} />
           <Route path="installments" element={<Installments />} />
+          <Route path="investments" element={<Investments />} />
         </Route>
       </Routes>
     </Router>

@@ -754,4 +754,172 @@ describe('API Functional Tests', () => {
             });
         });
     });
+
+    describe('Investment Transactions', () => {
+        describe('Auto-detection on import', () => {
+            it('should auto-detect investment transactions containing "RDB" in description', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                const drafts = [
+                    { date: new Date('2023-12-10'), amount: 100.00, description: 'RDB - Aplicação', originalDescription: 'RDB - Aplicação' },
+                    { date: new Date('2023-12-11'), amount: -50.00, description: 'RDB - Resgate', originalDescription: 'RDB - Resgate' },
+                    { date: new Date('2023-12-12'), amount: 25.00, description: 'Regular Purchase', originalDescription: 'Regular Purchase' },
+                ];
+
+                await repo.saveTransactions(drafts, account.id, job.id, 'credit_card');
+
+                const res = await app.request('/transactions');
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data).toHaveLength(3);
+
+                const rdbApplication = data.find((t: any) => t.description === 'RDB - Aplicação');
+                expect(rdbApplication.isInvestment).toBe(true);
+
+                const rdbWithdrawal = data.find((t: any) => t.description === 'RDB - Resgate');
+                expect(rdbWithdrawal.isInvestment).toBe(true);
+
+                const regularTx = data.find((t: any) => t.description === 'Regular Purchase');
+                expect(regularTx.isInvestment).toBe(false);
+            });
+
+            it('should be case-insensitive when detecting "RDB"', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                const drafts = [
+                    { date: new Date('2023-12-10'), amount: 100.00, description: 'rdb - lowercase', originalDescription: 'rdb - lowercase' },
+                    { date: new Date('2023-12-11'), amount: 100.00, description: 'RdB - Mixed Case', originalDescription: 'RdB - Mixed Case' },
+                ];
+
+                await repo.saveTransactions(drafts, account.id, job.id, 'credit_card');
+
+                const res = await app.request('/transactions');
+                const data = await res.json();
+
+                expect(data.every((t: any) => t.isInvestment === true)).toBe(true);
+            });
+        });
+
+        describe('POST /transactions with investment flag', () => {
+            it('should create transaction with isInvestment=true', async () => {
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        institutionId: 'nubank',
+                        categoryId: null,
+                        date: '2024-01-15',
+                        amount: -500,
+                        description: 'Manual Investment',
+                        type: 'checking',
+                        isInvestment: true,
+                    }),
+                });
+
+                expect(res.status).toBe(200);
+                const data = await res.json();
+                expect(data.success).toBe(true);
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                expect(txList[0].isInvestment).toBe(true);
+            });
+
+            it('should default isInvestment to false when not provided', async () => {
+                const res = await app.request('/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        institutionId: 'nubank',
+                        categoryId: null,
+                        date: '2024-01-15',
+                        amount: 100,
+                        description: 'Regular Transaction',
+                        type: 'credit_card',
+                    }),
+                });
+
+                expect(res.status).toBe(200);
+
+                const txRes = await app.request('/transactions');
+                const txList = await txRes.json();
+                expect(txList[0].isInvestment).toBe(false);
+            });
+        });
+
+        describe('PATCH /transactions/:id with investment flag', () => {
+            it('should update isInvestment flag', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const transaction = await repo.createTransaction({
+                    accountId: account.id,
+                    categoryId: null,
+                    date: new Date('2024-01-15'),
+                    amount: 100,
+                    description: 'Test Transaction',
+                    type: 'credit_card',
+                });
+
+                expect(transaction.isInvestment).toBe(false);
+
+                const patchRes = await app.request(`/transactions/${transaction.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isInvestment: true }),
+                });
+
+                expect(patchRes.status).toBe(200);
+
+                const verifyRes = await app.request('/transactions');
+                const txList = await verifyRes.json();
+                expect(txList[0].isInvestment).toBe(true);
+            });
+
+            it('should allow toggling isInvestment from true to false', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const transaction = await repo.createTransaction({
+                    accountId: account.id,
+                    categoryId: null,
+                    date: new Date('2024-01-15'),
+                    amount: 100,
+                    description: 'Investment Transaction',
+                    type: 'credit_card',
+                    isInvestment: true,
+                });
+
+                expect(transaction.isInvestment).toBe(true);
+
+                const patchRes = await app.request(`/transactions/${transaction.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isInvestment: false }),
+                });
+
+                expect(patchRes.status).toBe(200);
+
+                const verifyRes = await app.request('/transactions');
+                const txList = await verifyRes.json();
+                expect(txList[0].isInvestment).toBe(false);
+            });
+        });
+
+        describe('GET /transactions returns isInvestment', () => {
+            it('should include isInvestment field in all transactions', async () => {
+                const account = await repo.getOrCreateAccount('Test Bank', 'bank');
+                const job = await repo.createImportJob('test.csv', 'completed', 'test');
+
+                await repo.saveTransactions([
+                    { date: new Date(), amount: 100, description: 'RDB Investment', originalDescription: 'RDB Investment' },
+                    { date: new Date(), amount: -50, description: 'Regular', originalDescription: 'Regular' },
+                ], account.id, job.id, 'credit_card');
+
+                const res = await app.request('/transactions');
+                const data = await res.json();
+
+                expect(data).toHaveLength(2);
+                expect(data.every((t: any) => typeof t.isInvestment === 'boolean')).toBe(true);
+            });
+        });
+    });
 });

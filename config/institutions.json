@@ -3,21 +3,22 @@
     {
       "id": "nubank",
       "name": "Nubank",
-      "accountTypes": ["credit_card", "checking"]
+      "accountTypes": ["credit_card", "checking", "investment"]
     },
     {
       "id": "mercado-pago",
       "name": "Mercado Pago",
-      "accountTypes": ["credit_card", "checking"]
+      "accountTypes": ["credit_card", "checking", "investment"]
     },
     {
       "id": "amazon",
       "name": "Amazon",
-      "accountTypes": ["credit_card"]
+      "accountTypes": ["credit_card", "investment"]
     }
   ],
   "accountTypeLabels": {
     "credit_card": "Cartão de Crédito",
-    "checking": "Conta Corrente"
+    "checking": "Conta Corrente",
+    "investment": "Investimento"
   }
 }

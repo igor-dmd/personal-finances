@@ -43,4 +43,5 @@ export const transactions = sqliteTable('transactions', {
     type: text('type').notNull().default('credit_card'),
     installmentGroupId: integer('installment_group_id').references(() => installmentGroups.id, { onDelete: 'cascade' }),
     installmentNumber: integer('installment_number'),
+    isInvestment: integer('is_investment', { mode: 'boolean' }).default(false).notNull(),
 });

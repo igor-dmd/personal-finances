@@ -59,7 +59,8 @@ export const Transactions: React.FC = () => {
                 amount: t.amount,
                 type: t.type,
                 installmentGroupId: t.installmentGroupId,
-                installmentNumber: t.installmentNumber
+                installmentNumber: t.installmentNumber,
+                isInvestment: t.isInvestment ?? false
             }));
 
             setTransactions(formatted);
@@ -79,6 +80,9 @@ export const Transactions: React.FC = () => {
 
     const filteredTransactions = React.useMemo(() => {
         return transactions.filter(t => {
+            // Skip investment transactions (they're on the Investments page)
+            if (t.isInvestment) return false;
+
             // Direction filter (income/expenses)
             if (filters.direction === 'income' && t.amount <= 0) return false;
             if (filters.direction === 'expenses' && t.amount >= 0) return false;

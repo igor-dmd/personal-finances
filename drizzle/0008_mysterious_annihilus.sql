@@ -1,0 +1,1 @@
+ALTER TABLE transactions ADD `is_investment` integer DEFAULT false NOT NULL;

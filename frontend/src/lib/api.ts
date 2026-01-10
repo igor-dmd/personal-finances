@@ -10,9 +10,10 @@ export interface Transaction {
     accountName: string | null;
     categoryId: number | null;
     categoryName: string | null;
-    type: 'credit_card' | 'checking' | string;
+    type: 'credit_card' | 'checking' | 'investment' | string;
     installmentGroupId: number | null;
     installmentNumber: number | null;
+    isInvestment: boolean;
 }
 
 export interface Category {
@@ -34,7 +35,8 @@ export interface CreateTransactionData {
     date: string; // ISO string
     amount: number;
     description: string;
-    type: 'credit_card' | 'checking';
+    type: 'credit_card' | 'checking' | 'investment';
+    isInvestment?: boolean;
 }
 
 export interface InstallmentGroup {
@@ -65,14 +67,14 @@ export interface CreateInstallmentData {
     totalAmount: number;
     firstInstallmentDate: string;
     institutionId: string;
-    type: 'credit_card' | 'checking';
+    type: 'credit_card' | 'checking' | 'investment';
     categoryId?: number | null;
 }
 
 export interface InstitutionConfig {
     id: string;
     name: string;
-    accountTypes: ('credit_card' | 'checking')[];
+    accountTypes: ('credit_card' | 'checking' | 'investment')[];
 }
 
 export interface InstitutionsConfig {

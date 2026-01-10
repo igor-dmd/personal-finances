@@ -57,6 +57,13 @@
       "when": 1767883762075,
       "tag": "0007_salty_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1767909136007,
+      "tag": "0008_mysterious_annihilus",
+      "breakpoints": true
     }
   ]
 }

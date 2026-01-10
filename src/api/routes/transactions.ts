@@ -25,6 +25,7 @@ const updateTransactionSchema = z.object({
     description: z.string().optional(),
     amount: z.number().optional(),
     date: z.coerce.date().optional(),
+    isInvestment: z.boolean().optional(),
 });
 
 const bulkUpdateCategorySchema = z.object({
@@ -38,9 +39,10 @@ const createTransactionSchema = z.object({
     date: z.coerce.date(),
     amount: z.number(),
     description: z.string().min(1, 'Descrição é obrigatória'),
-    type: z.enum(['credit_card', 'checking'], {
-        errorMap: () => ({ message: 'Tipo deve ser credit_card ou checking' })
+    type: z.enum(['credit_card', 'checking', 'investment'], {
+        errorMap: () => ({ message: 'Tipo deve ser credit_card, checking ou investment' })
     }),
+    isInvestment: z.boolean().optional().default(false),
 });
 
 transactions.get('/accounts', async (c) => {
@@ -178,6 +180,7 @@ transactions.post('/', zValidator('json', createTransactionSchema), async (c) =>
             amount: data.amount,
             description: data.description,
             type: data.type,
+            isInvestment: data.isInvestment,
         });
 
         return c.json({

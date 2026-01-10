@@ -3,6 +3,8 @@ import type { Category } from '../lib/api';
 import { MonthSection, type DisplayTransaction } from './MonthSection';
 import { groupTransactionsByMonth, getCurrentMonthKey } from '../utils/date';
 
+type InvestmentMode = 'summary' | null;
+
 interface MonthlyTimelineProps {
     transactions: DisplayTransaction[];
     categories: Category[];
@@ -10,6 +12,7 @@ interface MonthlyTimelineProps {
     onBulkUpdateCategory: (description: string, categoryId: number | null) => Promise<void>;
     onEditTransaction: (transaction: DisplayTransaction) => void;
     onDeleteTransaction: (transaction: DisplayTransaction) => void;
+    investmentMode?: InvestmentMode;
 }
 
 export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
@@ -18,7 +21,8 @@ export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
     onUpdateCategory,
     onBulkUpdateCategory,
     onEditTransaction,
-    onDeleteTransaction
+    onDeleteTransaction,
+    investmentMode = null
 }) => {
     const [expandedMonths, setExpandedMonths] = React.useState<Set<string>>(() => {
         return new Set([getCurrentMonthKey()]);
@@ -65,6 +69,7 @@ export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
                     onDeleteTransaction={onDeleteTransaction}
                     isFirst={index === 0}
                     isLast={index === monthGroups.length - 1}
+                    investmentMode={investmentMode}
                 />
             ))}
         </div>

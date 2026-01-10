@@ -67,6 +67,7 @@ export class FinanceRepository {
             categoryName: categories.name,
             installmentGroupId: transactions.installmentGroupId,
             installmentNumber: transactions.installmentNumber,
+            isInvestment: transactions.isInvestment,
         })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -126,6 +127,7 @@ export class FinanceRepository {
 
                 // Create transactions with group link
                 for (const draft of groupDrafts) {
+                    const isInvestment = draft.description.toUpperCase().includes('RDB');
                     await db.insert(transactions).values({
                         accountId,
                         importJobId,
@@ -136,6 +138,7 @@ export class FinanceRepository {
                         type: transactionType,
                         installmentGroupId: group.id,
                         installmentNumber: draft.installmentInfo!.currentInstallment,
+                        isInvestment,
                     }).run();
                 }
             }
@@ -143,17 +146,21 @@ export class FinanceRepository {
 
         // Process regular transactions
         if (regularDrafts.length > 0) {
-            const txs = regularDrafts.map(draft => ({
-                accountId,
-                importJobId,
-                date: draft.date,
-                amount: draft.amount,
-                description: draft.description,
-                originalDescription: draft.originalDescription,
-                type: transactionType,
-                installmentGroupId: null,
-                installmentNumber: null,
-            }));
+            const txs = regularDrafts.map(draft => {
+                const isInvestment = draft.description.toUpperCase().includes('RDB');
+                return {
+                    accountId,
+                    importJobId,
+                    date: draft.date,
+                    amount: draft.amount,
+                    description: draft.description,
+                    originalDescription: draft.originalDescription,
+                    type: transactionType,
+                    installmentGroupId: null,
+                    installmentNumber: null,
+                    isInvestment,
+                };
+            });
 
             await db.insert(transactions).values(txs).run();
         }
@@ -176,6 +183,7 @@ export class FinanceRepository {
         amount: number;
         description: string;
         type: string;
+        isInvestment?: boolean;
     }) {
         const result = await db.insert(transactions).values({
             accountId: data.accountId,
@@ -186,6 +194,7 @@ export class FinanceRepository {
             originalDescription: data.description,
             type: data.type,
             importJobId: null,
+            isInvestment: data.isInvestment ?? false,
         }).returning().get();
         return result;
     }
