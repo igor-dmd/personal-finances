@@ -2,7 +2,7 @@ import React from 'react';
 import { StatsCard } from './StatsCard';
 
 interface TransactionStatsProps {
-    transactions: { amount: number; isInvestment?: boolean }[];
+    transactions: { amount: number; isInvestment?: boolean; isIgnored?: boolean }[];
 }
 
 export const TransactionStats: React.FC<TransactionStatsProps> = ({ transactions }) => {
@@ -13,6 +13,8 @@ export const TransactionStats: React.FC<TransactionStatsProps> = ({ transactions
         for (const t of transactions) {
             // Skip investment transactions (they're shown on the Investments page)
             if (t.isInvestment) continue;
+            // Skip ignored transactions
+            if (t.isIgnored) continue;
 
             if (t.amount > 0) {
                 income += t.amount;

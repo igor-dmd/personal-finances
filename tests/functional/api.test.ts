@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { FinanceRepository } from '../../src/db/repository';
 import { db } from '../../src/db';
-import { transactions, importJobs, accounts, categories } from '../../src/db/schema';
+import { transactions, importJobs, accounts, categories, investments, investmentMovements, installmentGroups } from '../../src/db/schema';
 
 const execAsync = promisify(exec);
 const TEST_DB = 'test-api.db';
@@ -37,8 +37,11 @@ describe('API Functional Tests', () => {
     });
 
     beforeEach(async () => {
-        // Clear tables to ensure test isolation
+        // Clear tables in correct order (respecting foreign keys)
+        await db.delete(investmentMovements).run();
+        await db.delete(investments).run();
         await db.delete(transactions).run();
+        await db.delete(installmentGroups).run();
         await db.delete(importJobs).run();
         await db.delete(accounts).run();
         await db.delete(categories).run();

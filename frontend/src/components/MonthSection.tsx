@@ -16,6 +16,7 @@ export interface DisplayTransaction {
     installmentGroupId: number | null;
     installmentNumber: number | null;
     isInvestment: boolean;
+    isIgnored: boolean;
 }
 
 interface MonthSectionProps {
@@ -29,6 +30,7 @@ interface MonthSectionProps {
     onBulkUpdateCategory: (description: string, categoryId: number | null) => Promise<void>;
     onEditTransaction: (transaction: DisplayTransaction) => void;
     onDeleteTransaction: (transaction: DisplayTransaction) => void;
+    onIgnoreTransaction?: (description: string) => void;
     isFirst: boolean;
     isLast: boolean;
     investmentMode?: 'summary' | null;
@@ -44,6 +46,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
     onBulkUpdateCategory,
     onEditTransaction,
     onDeleteTransaction,
+    onIgnoreTransaction,
     isFirst,
     isLast,
     investmentMode = null
@@ -65,6 +68,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
             let investido = 0;  // Negative amounts (deposits to investment)
             let resgatado = 0;  // Positive amounts (withdrawals from investment)
             for (const t of transactions) {
+                if (t.isIgnored) continue;
                 if (t.amount < 0) investido += Math.abs(t.amount);
                 else resgatado += t.amount;
             }
@@ -75,6 +79,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
             let expenses = 0;
             for (const t of transactions) {
                 if (t.isInvestment) continue; // Skip investment transactions
+                if (t.isIgnored) continue; // Skip ignored transactions
                 if (t.amount > 0) income += t.amount;
                 else expenses += Math.abs(t.amount);
             }
@@ -198,15 +203,15 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                 <span className="text-sm text-slate-500 ml-auto mr-2">
                     {investmentMode === 'summary' ? (
                         <>
-                            <span className="text-emerald-600">Investido {formatCurrency('investido' in summary ? summary.investido : 0)}</span>
+                            <span className="text-emerald-600">Investido {formatCurrency((summary as { investido: number }).investido)}</span>
                             {' / '}
-                            <span className="text-rose-600">Resgatado {formatCurrency('resgatado' in summary ? summary.resgatado : 0)}</span>
+                            <span className="text-rose-600">Resgatado {formatCurrency((summary as { resgatado: number }).resgatado)}</span>
                         </>
                     ) : (
                         <>
-                            <span className="text-emerald-600">+{formatCurrency('income' in summary ? summary.income : 0)}</span>
+                            <span className="text-emerald-600">+{formatCurrency((summary as { income: number }).income)}</span>
                             {' / '}
-                            <span className="text-rose-600">-{formatCurrency('expenses' in summary ? summary.expenses : 0)}</span>
+                            <span className="text-rose-600">-{formatCurrency((summary as { expenses: number }).expenses)}</span>
                         </>
                     )}
                 </span>
@@ -343,6 +348,17 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                         </svg>
                                                     </button>
+                                                    {onIgnoreTransaction && (
+                                                        <button
+                                                            onClick={() => onIgnoreTransaction(t.description)}
+                                                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                                            title="Ignorar transações com esta descrição"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => onDeleteTransaction(t)}
                                                         className="p-1.5 text-rose-600 hover:bg-rose-50 rounded transition-colors"

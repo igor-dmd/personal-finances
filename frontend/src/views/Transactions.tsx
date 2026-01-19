@@ -27,7 +27,7 @@ interface Filters {
 export const Transactions: React.FC = () => {
     const [transactions, setTransactions] = React.useState<DisplayTransaction[]>([]);
     const [categories, setCategories] = React.useState<Category[]>([]);
-    const [accounts, setAccounts] = React.useState<Account[]>([]);
+    const [_accounts, setAccounts] = React.useState<Account[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState<string | null>(null);
     const [filters, setFilters] = React.useState<Filters>({
@@ -35,6 +35,7 @@ export const Transactions: React.FC = () => {
         accountType: 'all',
         categoryId: null
     });
+    const [showIgnored, setShowIgnored] = React.useState(false);
     const [isFormModalOpen, setIsFormModalOpen] = React.useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
     const [selectedTransaction, setSelectedTransaction] = React.useState<DisplayTransaction | null>(null);
@@ -60,7 +61,8 @@ export const Transactions: React.FC = () => {
                 type: t.type,
                 installmentGroupId: t.installmentGroupId,
                 installmentNumber: t.installmentNumber,
-                isInvestment: t.isInvestment ?? false
+                isInvestment: t.isInvestment ?? false,
+                isIgnored: t.isIgnored ?? false
             }));
 
             setTransactions(formatted);
@@ -83,6 +85,9 @@ export const Transactions: React.FC = () => {
             // Skip investment transactions (they're on the Investments page)
             if (t.isInvestment) return false;
 
+            // Skip ignored transactions unless showIgnored is true
+            if (t.isIgnored && !showIgnored) return false;
+
             // Direction filter (income/expenses)
             if (filters.direction === 'income' && t.amount <= 0) return false;
             if (filters.direction === 'expenses' && t.amount >= 0) return false;
@@ -95,7 +100,7 @@ export const Transactions: React.FC = () => {
 
             return true;
         });
-    }, [transactions, filters]);
+    }, [transactions, filters, showIgnored]);
 
     const handleUpdateCategory = async (transactionId: number, categoryId: number | null) => {
         try {
@@ -150,6 +155,23 @@ export const Transactions: React.FC = () => {
         }
     };
 
+    const handleIgnoreTransaction = async (description: string) => {
+        try {
+            const preview = await api.previewIgnoreDescription(description);
+            if (preview.isIgnored) {
+                alert('Esta descricao ja esta na lista de ignoradas');
+                return;
+            }
+            if (confirm(`Ignorar ${preview.count} transacao(oes) com descricao "${description}"?`)) {
+                await api.addIgnoredDescription(description);
+                await loadData();
+            }
+        } catch (err: any) {
+            console.error(err);
+            alert('Falha ao ignorar transacao');
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando transações...</div>;
     if (error) return <div className="p-8 text-center text-rose-500">{error}</div>;
 
@@ -181,6 +203,16 @@ export const Transactions: React.FC = () => {
                                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                             </svg>
                             Adicionar Transação
+                        </button>
+                        <button
+                            onClick={() => setShowIgnored(!showIgnored)}
+                            className={`px-3 py-1.5 text-sm rounded-lg border ${
+                                showIgnored
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                        >
+                            {showIgnored ? 'Ocultar Ignoradas' : 'Mostrar Ignoradas'}
                         </button>
                         <SegmentedControl
                             options={FILTER_OPTIONS}
@@ -215,6 +247,7 @@ export const Transactions: React.FC = () => {
                 onBulkUpdateCategory={handleBulkUpdateCategory}
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteClick}
+                onIgnoreTransaction={handleIgnoreTransaction}
             />
 
             <TransactionFormModal

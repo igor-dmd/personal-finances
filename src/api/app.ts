@@ -5,6 +5,8 @@ import transactions from './routes/transactions';
 import importJobs from './routes/import-jobs';
 import categories from './routes/categories';
 import installments from './routes/installments';
+import investmentsRoute from './routes/investments';
+import ignoredTransactions from './routes/ignored-transactions';
 
 const app = new Hono();
 
@@ -17,5 +19,7 @@ app.route('/transactions', transactions);
 app.route('/import-jobs', importJobs);
 app.route('/categories', categories);
 app.route('/installments', installments);
+app.route('/investments', investmentsRoute);
+app.route('/ignored-transactions', ignoredTransactions);
 
 export default app;

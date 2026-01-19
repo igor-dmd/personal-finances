@@ -11,6 +11,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeItem = 'Dashboard' }) =>
         { name: 'Installments', icon: '📊', path: '/installments' },
         { name: 'Investments', icon: '💰', path: '/investments' },
         { name: 'Categories', icon: '🏷️', path: '/categories' },
+        { name: 'Ignored', icon: '🚫', path: '/ignored' },
         { name: 'Import', icon: '📥', path: '/import' },
         { name: 'Settings', icon: '⚙️', path: '/settings' },
     ];

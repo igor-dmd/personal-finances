@@ -1,5 +1,5 @@
 import { db } from './index';
-import { accounts, importJobs, transactions, categories, installmentGroups } from './schema';
+import { accounts, importJobs, transactions, categories, installmentGroups, investments, investmentMovements, ignoredDescriptions } from './schema';
 import { eq, and, sql, isNull } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
@@ -68,6 +68,7 @@ export class FinanceRepository {
             installmentGroupId: transactions.installmentGroupId,
             installmentNumber: transactions.installmentNumber,
             isInvestment: transactions.isInvestment,
+            isIgnored: transactions.isIgnored,
         })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -81,6 +82,10 @@ export class FinanceRepository {
 
     async saveTransactions(drafts: TransactionDraft[], accountId: number, importJobId: number, transactionType: string) {
         if (drafts.length === 0) return;
+
+        // Fetch ignored descriptions for auto-ignore
+        const ignoredList = await this.getIgnoredDescriptions();
+        const ignoredSet = new Set(ignoredList.map(d => d.description));
 
         // Separate transactions with installment info from regular ones
         const installmentDrafts: TransactionDraft[] = [];
@@ -139,6 +144,7 @@ export class FinanceRepository {
                         installmentGroupId: group.id,
                         installmentNumber: draft.installmentInfo!.currentInstallment,
                         isInvestment,
+                        isIgnored: ignoredSet.has(draft.description),
                     }).run();
                 }
             }
@@ -159,6 +165,7 @@ export class FinanceRepository {
                     installmentGroupId: null,
                     installmentNumber: null,
                     isInvestment,
+                    isIgnored: ignoredSet.has(draft.description),
                 };
             });
 
@@ -345,5 +352,241 @@ export class FinanceRepository {
         }
 
         return futureInstallments;
+    }
+
+    // ==================== Investment Methods ====================
+
+    async createInvestment(data: {
+        accountId: number;
+        type: string;
+        name: string;
+        currentValue?: number;
+    }) {
+        const result = await db
+            .insert(investments)
+            .values({
+                accountId: data.accountId,
+                type: data.type,
+                name: data.name,
+                currentValue: data.currentValue ?? 0,
+            })
+            .returning()
+            .get();
+        return result;
+    }
+
+    async getInvestments() {
+        const allInvestments = await db
+            .select({
+                id: investments.id,
+                accountId: investments.accountId,
+                accountName: accounts.name,
+                type: investments.type,
+                name: investments.name,
+                currentValue: investments.currentValue,
+                createdAt: investments.createdAt,
+                updatedAt: investments.updatedAt,
+            })
+            .from(investments)
+            .leftJoin(accounts, eq(investments.accountId, accounts.id))
+            .all();
+
+        // Enrich with movement summaries
+        const enriched = await Promise.all(
+            allInvestments.map(async (inv) => {
+                const result = await db
+                    .select({
+                        totalDeposited: sql<number>`COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END), 0)`,
+                        totalWithdrawn: sql<number>`COALESCE(SUM(CASE WHEN type = 'withdrawal' THEN amount ELSE 0 END), 0)`,
+                    })
+                    .from(investmentMovements)
+                    .where(eq(investmentMovements.investmentId, inv.id))
+                    .get();
+
+                const totalDeposited = result?.totalDeposited || 0;
+                const totalWithdrawn = result?.totalWithdrawn || 0;
+                const netInvested = totalDeposited - totalWithdrawn;
+                const gain = inv.currentValue - netInvested;
+
+                return {
+                    ...inv,
+                    totalDeposited,
+                    totalWithdrawn,
+                    netInvested,
+                    gain,
+                };
+            })
+        );
+
+        return enriched;
+    }
+
+    async getInvestment(id: number) {
+        const inv = await db
+            .select({
+                id: investments.id,
+                accountId: investments.accountId,
+                accountName: accounts.name,
+                type: investments.type,
+                name: investments.name,
+                currentValue: investments.currentValue,
+                createdAt: investments.createdAt,
+                updatedAt: investments.updatedAt,
+            })
+            .from(investments)
+            .leftJoin(accounts, eq(investments.accountId, accounts.id))
+            .where(eq(investments.id, id))
+            .get();
+
+        if (!inv) return null;
+
+        const movements = await db
+            .select()
+            .from(investmentMovements)
+            .where(eq(investmentMovements.investmentId, id))
+            .orderBy(sql`date DESC`)
+            .all();
+
+        // Calculate summaries
+        let totalDeposited = 0;
+        let totalWithdrawn = 0;
+        for (const m of movements) {
+            if (m.type === 'deposit') {
+                totalDeposited += m.amount;
+            } else {
+                totalWithdrawn += m.amount;
+            }
+        }
+        const netInvested = totalDeposited - totalWithdrawn;
+        const gain = inv.currentValue - netInvested;
+
+        return {
+            ...inv,
+            totalDeposited,
+            totalWithdrawn,
+            netInvested,
+            gain,
+            movements,
+        };
+    }
+
+    async updateInvestment(
+        id: number,
+        data: { name?: string; type?: string; currentValue?: number }
+    ) {
+        const updateData: any = { ...data };
+        if (Object.keys(updateData).length > 0) {
+            updateData.updatedAt = new Date();
+        }
+        return await db
+            .update(investments)
+            .set(updateData)
+            .where(eq(investments.id, id))
+            .run();
+    }
+
+    async deleteInvestment(id: number) {
+        // Cascade delete will handle movements automatically
+        await db.delete(investments).where(eq(investments.id, id)).run();
+    }
+
+    // ==================== Investment Movement Methods ====================
+
+    async createInvestmentMovement(data: {
+        investmentId: number;
+        type: 'deposit' | 'withdrawal';
+        date: Date;
+        amount: number;
+        description?: string;
+    }) {
+        const result = await db
+            .insert(investmentMovements)
+            .values({
+                investmentId: data.investmentId,
+                type: data.type,
+                date: data.date,
+                amount: data.amount,
+                description: data.description || null,
+            })
+            .returning()
+            .get();
+        return result;
+    }
+
+    async updateInvestmentMovement(
+        id: number,
+        data: { type?: 'deposit' | 'withdrawal'; date?: Date; amount?: number; description?: string | null }
+    ) {
+        return await db
+            .update(investmentMovements)
+            .set(data)
+            .where(eq(investmentMovements.id, id))
+            .run();
+    }
+
+    async deleteInvestmentMovement(id: number) {
+        await db.delete(investmentMovements).where(eq(investmentMovements.id, id)).run();
+    }
+
+    async getInvestmentMovements(investmentId: number) {
+        return await db
+            .select()
+            .from(investmentMovements)
+            .where(eq(investmentMovements.investmentId, investmentId))
+            .orderBy(sql`date DESC`)
+            .all();
+    }
+
+    // ==================== Ignored Transactions Methods ====================
+
+    async getIgnoredDescriptions() {
+        return await db.select().from(ignoredDescriptions).orderBy(ignoredDescriptions.description).all();
+    }
+
+    async addIgnoredDescription(description: string): Promise<{ id: number; ignoredCount: number }> {
+        const [inserted] = await db.insert(ignoredDescriptions)
+            .values({ description })
+            .returning({ id: ignoredDescriptions.id });
+
+        const result = await db.update(transactions)
+            .set({ isIgnored: true })
+            .where(eq(transactions.description, description))
+            .run();
+
+        return { id: inserted.id, ignoredCount: result.changes };
+    }
+
+    async removeIgnoredDescription(id: number): Promise<{ unignoredCount: number }> {
+        const record = await db.select()
+            .from(ignoredDescriptions)
+            .where(eq(ignoredDescriptions.id, id))
+            .get();
+
+        if (!record) throw new Error('Ignored description not found');
+
+        await db.delete(ignoredDescriptions)
+            .where(eq(ignoredDescriptions.id, id))
+            .run();
+
+        const result = await db.update(transactions)
+            .set({ isIgnored: false })
+            .where(eq(transactions.description, record.description))
+            .run();
+
+        return { unignoredCount: result.changes };
+    }
+
+    async getIgnorePreview(description: string): Promise<{ count: number; isIgnored: boolean }> {
+        const countResult = await db.select({ count: sql<number>`count(*)` })
+            .from(transactions)
+            .where(eq(transactions.description, description))
+            .get();
+
+        const isIgnored = await db.select()
+            .from(ignoredDescriptions)
+            .where(eq(ignoredDescriptions.description, description))
+            .get();
+
+        return { count: countResult?.count || 0, isIgnored: !!isIgnored };
     }
 }

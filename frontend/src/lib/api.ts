@@ -14,6 +14,7 @@ export interface Transaction {
     installmentGroupId: number | null;
     installmentNumber: number | null;
     isInvestment: boolean;
+    isIgnored: boolean;
 }
 
 export interface Category {
@@ -80,6 +81,61 @@ export interface InstitutionConfig {
 export interface InstitutionsConfig {
     institutions: InstitutionConfig[];
     accountTypeLabels: Record<string, string>;
+}
+
+// Investment types
+export type InvestmentType =
+    | 'RDB' | 'CDB' | 'LCI' | 'LCA'
+    | 'Tesouro Direto' | 'Tesouro Selic' | 'Tesouro IPCA+' | 'Tesouro Prefixado'
+    | 'Outros';
+
+export interface Investment {
+    id: number;
+    accountId: number;
+    accountName: string | null;
+    type: InvestmentType;
+    name: string;
+    currentValue: number;
+    totalDeposited: number;
+    totalWithdrawn: number;
+    netInvested: number;
+    gain: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface InvestmentMovement {
+    id: number;
+    investmentId: number;
+    type: 'deposit' | 'withdrawal';
+    date: string;
+    amount: number;
+    description: string | null;
+    createdAt: string;
+}
+
+export interface InvestmentDetail extends Investment {
+    movements: InvestmentMovement[];
+}
+
+export interface CreateInvestmentData {
+    institutionId: string;
+    type: InvestmentType;
+    name: string;
+    currentValue?: number;
+}
+
+export interface CreateMovementData {
+    type: 'deposit' | 'withdrawal';
+    date: string;
+    amount: number;
+    description?: string;
+}
+
+export interface IgnoredDescription {
+    id: number;
+    description: string;
+    createdAt: string;
 }
 
 export const api = {
@@ -270,6 +326,143 @@ export const api = {
             const error = await response.json();
             throw new Error(error.error || 'Failed to delete installment');
         }
+        return response.json();
+    },
+
+    // Investment methods
+    getInvestments: async (): Promise<Investment[]> => {
+        const response = await fetch(`${API_URL}/investments`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch investments');
+        }
+        return response.json();
+    },
+
+    getInvestmentDetail: async (id: number): Promise<InvestmentDetail> => {
+        const response = await fetch(`${API_URL}/investments/${id}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch investment detail');
+        }
+        return response.json();
+    },
+
+    getInvestmentTypes: async (): Promise<InvestmentType[]> => {
+        const response = await fetch(`${API_URL}/investments/types`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch investment types');
+        }
+        return response.json();
+    },
+
+    createInvestment: async (data: CreateInvestmentData): Promise<{ success: boolean; investment: Investment }> => {
+        const response = await fetch(`${API_URL}/investments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to create investment');
+        }
+        return response.json();
+    },
+
+    updateInvestment: async (id: number, data: Partial<{ name: string; type: InvestmentType; currentValue: number }>): Promise<{ success: boolean }> => {
+        const response = await fetch(`${API_URL}/investments/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update investment');
+        }
+        return response.json();
+    },
+
+    deleteInvestment: async (id: number): Promise<{ success: boolean; message: string }> => {
+        const response = await fetch(`${API_URL}/investments/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete investment');
+        }
+        return response.json();
+    },
+
+    // Investment movement methods
+    createInvestmentMovement: async (investmentId: number, data: CreateMovementData): Promise<{ success: boolean; movement: InvestmentMovement }> => {
+        const response = await fetch(`${API_URL}/investments/${investmentId}/movements`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to create movement');
+        }
+        return response.json();
+    },
+
+    updateInvestmentMovement: async (investmentId: number, movementId: number, data: Partial<CreateMovementData>): Promise<{ success: boolean }> => {
+        const response = await fetch(`${API_URL}/investments/${investmentId}/movements/${movementId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update movement');
+        }
+        return response.json();
+    },
+
+    deleteInvestmentMovement: async (investmentId: number, movementId: number): Promise<{ success: boolean; message: string }> => {
+        const response = await fetch(`${API_URL}/investments/${investmentId}/movements/${movementId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete movement');
+        }
+        return response.json();
+    },
+
+    // Ignored transactions methods
+    getIgnoredDescriptions: async (): Promise<IgnoredDescription[]> => {
+        const response = await fetch(`${API_URL}/ignored-transactions`);
+        if (!response.ok) throw new Error('Failed to fetch ignored descriptions');
+        return response.json();
+    },
+
+    previewIgnoreDescription: async (description: string) => {
+        const response = await fetch(
+            `${API_URL}/ignored-transactions/preview?description=${encodeURIComponent(description)}`
+        );
+        if (!response.ok) throw new Error('Failed to preview ignore');
+        return response.json();
+    },
+
+    addIgnoredDescription: async (description: string) => {
+        const response = await fetch(`${API_URL}/ignored-transactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description }),
+        });
+        if (!response.ok) throw new Error('Failed to add ignored description');
+        return response.json();
+    },
+
+    removeIgnoredDescription: async (id: number) => {
+        const response = await fetch(`${API_URL}/ignored-transactions/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to remove ignored description');
         return response.json();
     }
 };

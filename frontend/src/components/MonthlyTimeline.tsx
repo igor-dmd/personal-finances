@@ -12,6 +12,7 @@ interface MonthlyTimelineProps {
     onBulkUpdateCategory: (description: string, categoryId: number | null) => Promise<void>;
     onEditTransaction: (transaction: DisplayTransaction) => void;
     onDeleteTransaction: (transaction: DisplayTransaction) => void;
+    onIgnoreTransaction?: (description: string) => void;
     investmentMode?: InvestmentMode;
 }
 
@@ -22,6 +23,7 @@ export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
     onBulkUpdateCategory,
     onEditTransaction,
     onDeleteTransaction,
+    onIgnoreTransaction,
     investmentMode = null
 }) => {
     const [expandedMonths, setExpandedMonths] = React.useState<Set<string>>(() => {
@@ -67,6 +69,7 @@ export const MonthlyTimeline: React.FC<MonthlyTimelineProps> = ({
                     onBulkUpdateCategory={onBulkUpdateCategory}
                     onEditTransaction={onEditTransaction}
                     onDeleteTransaction={onDeleteTransaction}
+                    onIgnoreTransaction={onIgnoreTransaction}
                     isFirst={index === 0}
                     isLast={index === monthGroups.length - 1}
                     investmentMode={investmentMode}
