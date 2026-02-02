@@ -10,8 +10,11 @@ export const Layout: React.FC = () => {
         const path = location.pathname;
         if (path === '/') return 'Transactions';
         if (path === '/installments') return 'Installments';
+        if (path === '/recurring') return 'Recurring';
+        if (path === '/planning') return 'Planning';
         if (path === '/investments') return 'Investments';
         if (path === '/categories') return 'Categories';
+        if (path === '/ignored') return 'Ignored';
         if (path === '/import') return 'Import';
         return 'Transactions';
     };

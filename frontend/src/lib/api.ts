@@ -15,6 +15,7 @@ export interface Transaction {
     installmentNumber: number | null;
     isInvestment: boolean;
     isIgnored: boolean;
+    isRecurring: boolean;
 }
 
 export interface Category {
@@ -464,5 +465,115 @@ export const api = {
         });
         if (!response.ok) throw new Error('Failed to remove ignored description');
         return response.json();
+    },
+
+    // Recurring transactions methods
+    getRecurringTransactions: async (): Promise<RecurringTransaction[]> => {
+        const response = await fetch(`${API_URL}/recurring-transactions`);
+        if (!response.ok) throw new Error('Failed to fetch recurring transactions');
+        return response.json();
+    },
+
+    previewRecurring: async (description: string): Promise<RecurringPreview & { description: string }> => {
+        const response = await fetch(
+            `${API_URL}/recurring-transactions/preview?description=${encodeURIComponent(description)}`
+        );
+        if (!response.ok) throw new Error('Failed to preview recurring');
+        return response.json();
+    },
+
+    addRecurringTransaction: async (description: string, categoryId?: number | null): Promise<{
+        success: boolean;
+        id: number;
+        description: string;
+        markedCount: number;
+        averageAmount: number;
+        occurrenceCount: number;
+    }> => {
+        const response = await fetch(`${API_URL}/recurring-transactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description, categoryId }),
+        });
+        if (!response.ok) throw new Error('Failed to add recurring transaction');
+        return response.json();
+    },
+
+    updateRecurringTransactionCategory: async (id: number, categoryId: number | null): Promise<{ success: boolean }> => {
+        const response = await fetch(`${API_URL}/recurring-transactions/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categoryId }),
+        });
+        if (!response.ok) throw new Error('Failed to update recurring transaction');
+        return response.json();
+    },
+
+    removeRecurringTransaction: async (id: number): Promise<{
+        success: boolean;
+        unmarkedCount: number;
+        description: string;
+    }> => {
+        const response = await fetch(`${API_URL}/recurring-transactions/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to remove recurring transaction');
+        return response.json();
+    },
+
+    // Future planning methods
+    getFuturePlanning: async (months: number = 6): Promise<FuturePlanningData> => {
+        const response = await fetch(`${API_URL}/future-planning?months=${months}`);
+        if (!response.ok) throw new Error('Failed to fetch future planning data');
+        return response.json();
     }
 };
+
+// Recurring transactions types
+export interface RecurringTransaction {
+    id: number;
+    description: string;
+    categoryId: number | null;
+    categoryName: string | null;
+    averageAmount: number;
+    occurrenceCount: number;
+    firstSeenDate: string | null;
+    lastSeenDate: string | null;
+    createdAt: string;
+}
+
+export interface RecurringPreview {
+    count: number;
+    averageAmount: number;
+    isRecurring: boolean;
+    suggestedCategoryId: number | null;
+}
+
+export interface FuturePlanningData {
+    futureInstallments: FuturePlanningInstallment[];
+    recurringExpenses: RecurringExpense[];
+    monthlyTotals: MonthlyTotal[];
+}
+
+export interface FuturePlanningInstallment {
+    groupId: number;
+    description: string;
+    installmentNumber: number;
+    dueDate: string | null;
+    amount: number;
+    remainingInstallments: number;
+}
+
+export interface RecurringExpense {
+    id: number;
+    description: string;
+    categoryName: string | null;
+    averageAmount: number;
+}
+
+export interface MonthlyTotal {
+    year: number;
+    month: number;
+    recurringTotal: number;
+    installmentTotal: number;
+}

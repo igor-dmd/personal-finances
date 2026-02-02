@@ -45,6 +45,7 @@ export const transactions = sqliteTable('transactions', {
     installmentNumber: integer('installment_number'),
     isInvestment: integer('is_investment', { mode: 'boolean' }).default(false).notNull(),
     isIgnored: integer('is_ignored', { mode: 'boolean' }).default(false).notNull(),
+    isRecurring: integer('is_recurring', { mode: 'boolean' }).default(false).notNull(),
 });
 
 export const investments = sqliteTable('investments', {
@@ -70,5 +71,16 @@ export const investmentMovements = sqliteTable('investment_movements', {
 export const ignoredDescriptions = sqliteTable('ignored_descriptions', {
     id: integer('id').primaryKey({ autoIncrement: true }),
     description: text('description').notNull().unique(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
+export const recurringTransactions = sqliteTable('recurring_transactions', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    description: text('description').notNull().unique(),
+    categoryId: integer('category_id').references(() => categories.id),
+    averageAmount: real('average_amount').notNull().default(0),
+    occurrenceCount: integer('occurrence_count').notNull().default(0),
+    firstSeenDate: integer('first_seen_date', { mode: 'timestamp' }),
+    lastSeenDate: integer('last_seen_date', { mode: 'timestamp' }),
     createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });

@@ -1,5 +1,5 @@
 import { db } from './index';
-import { accounts, importJobs, transactions, categories, installmentGroups, investments, investmentMovements, ignoredDescriptions } from './schema';
+import { accounts, importJobs, transactions, categories, installmentGroups, investments, investmentMovements, ignoredDescriptions, recurringTransactions } from './schema';
 import { eq, and, sql, isNull } from 'drizzle-orm';
 import { TransactionDraft } from '../extraction/types';
 
@@ -69,6 +69,7 @@ export class FinanceRepository {
             installmentNumber: transactions.installmentNumber,
             isInvestment: transactions.isInvestment,
             isIgnored: transactions.isIgnored,
+            isRecurring: transactions.isRecurring,
         })
             .from(transactions)
             .leftJoin(accounts, eq(transactions.accountId, accounts.id))
@@ -86,6 +87,10 @@ export class FinanceRepository {
         // Fetch ignored descriptions for auto-ignore
         const ignoredList = await this.getIgnoredDescriptions();
         const ignoredSet = new Set(ignoredList.map(d => d.description));
+
+        // Fetch recurring descriptions for auto-mark recurring
+        const recurringList = await this.getRecurringDescriptions();
+        const recurringSet = new Set(recurringList.map(d => d.description));
 
         // Separate transactions with installment info from regular ones
         const installmentDrafts: TransactionDraft[] = [];
@@ -145,6 +150,7 @@ export class FinanceRepository {
                         installmentNumber: draft.installmentInfo!.currentInstallment,
                         isInvestment,
                         isIgnored: ignoredSet.has(draft.description),
+                        isRecurring: recurringSet.has(draft.description),
                     }).run();
                 }
             }
@@ -166,6 +172,7 @@ export class FinanceRepository {
                     installmentNumber: null,
                     isInvestment,
                     isIgnored: ignoredSet.has(draft.description),
+                    isRecurring: recurringSet.has(draft.description),
                 };
             });
 
@@ -588,5 +595,271 @@ export class FinanceRepository {
             .get();
 
         return { count: countResult?.count || 0, isIgnored: !!isIgnored };
+    }
+
+    // ==================== Recurring Transactions Methods ====================
+
+    async getRecurringDescriptions() {
+        return await db.select().from(recurringTransactions).orderBy(recurringTransactions.description).all();
+    }
+
+    async getRecurringTransactions() {
+        const recurring = await db.select({
+            id: recurringTransactions.id,
+            description: recurringTransactions.description,
+            categoryId: recurringTransactions.categoryId,
+            categoryName: categories.name,
+            averageAmount: recurringTransactions.averageAmount,
+            occurrenceCount: recurringTransactions.occurrenceCount,
+            firstSeenDate: recurringTransactions.firstSeenDate,
+            lastSeenDate: recurringTransactions.lastSeenDate,
+            createdAt: recurringTransactions.createdAt,
+        })
+            .from(recurringTransactions)
+            .leftJoin(categories, eq(recurringTransactions.categoryId, categories.id))
+            .orderBy(recurringTransactions.description)
+            .all();
+        return recurring;
+    }
+
+    async addRecurringTransaction(description: string, categoryId?: number | null): Promise<{
+        id: number;
+        markedCount: number;
+        averageAmount: number;
+        occurrenceCount: number;
+        firstSeenDate: Date | null;
+        lastSeenDate: Date | null;
+    }> {
+        // Calculate statistics from matching transactions
+        const matchingTxs = await db.select({
+            amount: transactions.amount,
+            date: transactions.date,
+            categoryId: transactions.categoryId,
+        })
+            .from(transactions)
+            .where(eq(transactions.description, description))
+            .orderBy(transactions.date)
+            .all();
+
+        const occurrenceCount = matchingTxs.length;
+        const averageAmount = occurrenceCount > 0
+            ? Math.abs(matchingTxs.reduce((sum, t) => sum + t.amount, 0) / occurrenceCount)
+            : 0;
+        const firstSeenDate = matchingTxs[0]?.date || null;
+        const lastSeenDate = matchingTxs[matchingTxs.length - 1]?.date || null;
+
+        // Use suggested category if not provided
+        const finalCategoryId = categoryId ?? matchingTxs[0]?.categoryId ?? null;
+
+        // Insert the recurring transaction
+        const [inserted] = await db.insert(recurringTransactions)
+            .values({
+                description,
+                categoryId: finalCategoryId,
+                averageAmount,
+                occurrenceCount,
+                firstSeenDate,
+                lastSeenDate,
+            })
+            .returning({ id: recurringTransactions.id });
+
+        // Mark existing transactions as recurring
+        const result = await db.update(transactions)
+            .set({ isRecurring: true })
+            .where(eq(transactions.description, description))
+            .run();
+
+        return {
+            id: inserted.id,
+            markedCount: result.changes,
+            averageAmount,
+            occurrenceCount,
+            firstSeenDate,
+            lastSeenDate,
+        };
+    }
+
+    async removeRecurringTransaction(id: number): Promise<{ unmarkedCount: number; description: string }> {
+        const record = await db.select()
+            .from(recurringTransactions)
+            .where(eq(recurringTransactions.id, id))
+            .get();
+
+        if (!record) throw new Error('Recurring transaction not found');
+
+        await db.delete(recurringTransactions)
+            .where(eq(recurringTransactions.id, id))
+            .run();
+
+        const result = await db.update(transactions)
+            .set({ isRecurring: false })
+            .where(eq(transactions.description, record.description))
+            .run();
+
+        return { unmarkedCount: result.changes, description: record.description };
+    }
+
+    async updateRecurringTransactionCategory(id: number, categoryId: number | null): Promise<void> {
+        await db.update(recurringTransactions)
+            .set({ categoryId })
+            .where(eq(recurringTransactions.id, id))
+            .run();
+    }
+
+    async getRecurringPreview(description: string): Promise<{
+        count: number;
+        averageAmount: number;
+        isRecurring: boolean;
+        suggestedCategoryId: number | null;
+    }> {
+        const matchingTxs = await db.select({
+            amount: transactions.amount,
+            categoryId: transactions.categoryId,
+        })
+            .from(transactions)
+            .where(eq(transactions.description, description))
+            .all();
+
+        const count = matchingTxs.length;
+        const averageAmount = count > 0
+            ? Math.abs(matchingTxs.reduce((sum, t) => sum + t.amount, 0) / count)
+            : 0;
+
+        const existing = await db.select()
+            .from(recurringTransactions)
+            .where(eq(recurringTransactions.description, description))
+            .get();
+
+        // Suggest the most common category
+        const categoryCounts = new Map<number | null, number>();
+        for (const tx of matchingTxs) {
+            const catId = tx.categoryId;
+            categoryCounts.set(catId, (categoryCounts.get(catId) || 0) + 1);
+        }
+        let suggestedCategoryId: number | null = null;
+        let maxCount = 0;
+        for (const [catId, cnt] of categoryCounts) {
+            if (cnt > maxCount) {
+                maxCount = cnt;
+                suggestedCategoryId = catId;
+            }
+        }
+
+        return {
+            count,
+            averageAmount,
+            isRecurring: !!existing,
+            suggestedCategoryId,
+        };
+    }
+
+    async getFuturePlanningData(months: number = 6): Promise<{
+        futureInstallments: Array<{
+            groupId: number;
+            description: string;
+            installmentNumber: number;
+            dueDate: Date | null;
+            amount: number;
+            remainingInstallments: number;
+        }>;
+        recurringExpenses: Array<{
+            id: number;
+            description: string;
+            categoryName: string | null;
+            averageAmount: number;
+        }>;
+        monthlyTotals: Array<{
+            year: number;
+            month: number;
+            recurringTotal: number;
+            installmentTotal: number;
+        }>;
+    }> {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+
+        // Get all installment groups with their future installments
+        const groups = await this.getInstallmentGroups();
+        const futureInstallments: Array<{
+            groupId: number;
+            description: string;
+            installmentNumber: number;
+            dueDate: Date | null;
+            amount: number;
+            remainingInstallments: number;
+        }> = [];
+
+        for (const group of groups) {
+            if (group.paidInstallments < group.totalInstallments) {
+                const remaining = group.totalInstallments - group.paidInstallments;
+                const installmentAmount = group.totalAmount / group.totalInstallments;
+
+                for (let i = group.paidInstallments + 1; i <= group.totalInstallments; i++) {
+                    // Estimate due date based on remaining installments
+                    const monthsAhead = i - group.paidInstallments - 1;
+                    const estimatedDate = new Date(today);
+                    estimatedDate.setMonth(estimatedDate.getMonth() + monthsAhead);
+
+                    futureInstallments.push({
+                        groupId: group.id,
+                        description: group.description,
+                        installmentNumber: i,
+                        dueDate: estimatedDate,
+                        amount: installmentAmount,
+                        remainingInstallments: remaining,
+                    });
+                }
+            }
+        }
+
+        // Get all recurring transactions
+        const recurring = await this.getRecurringTransactions();
+        const recurringExpenses = recurring.map(r => ({
+            id: r.id,
+            description: r.description,
+            categoryName: r.categoryName,
+            averageAmount: r.averageAmount,
+        }));
+
+        // Calculate monthly totals
+        const monthlyTotals: Array<{
+            year: number;
+            month: number;
+            recurringTotal: number;
+            installmentTotal: number;
+        }> = [];
+
+        for (let m = 0; m < months; m++) {
+            const targetYear = currentYear + Math.floor((currentMonth + m) / 12);
+            const targetMonth = (currentMonth + m) % 12;
+
+            // Sum recurring expenses (all recur monthly)
+            const recurringTotal = recurringExpenses.reduce((sum, r) => sum + r.averageAmount, 0);
+
+            // Sum installments due in this month
+            let installmentTotal = 0;
+            for (const inst of futureInstallments) {
+                if (inst.dueDate) {
+                    const instDate = new Date(inst.dueDate);
+                    if (instDate.getFullYear() === targetYear && instDate.getMonth() === targetMonth) {
+                        installmentTotal += inst.amount;
+                    }
+                }
+            }
+
+            monthlyTotals.push({
+                year: targetYear,
+                month: targetMonth,
+                recurringTotal,
+                installmentTotal,
+            });
+        }
+
+        return {
+            futureInstallments,
+            recurringExpenses,
+            monthlyTotals,
+        };
     }
 }

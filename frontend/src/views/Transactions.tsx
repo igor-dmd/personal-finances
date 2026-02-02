@@ -62,7 +62,8 @@ export const Transactions: React.FC = () => {
                 installmentGroupId: t.installmentGroupId,
                 installmentNumber: t.installmentNumber,
                 isInvestment: t.isInvestment ?? false,
-                isIgnored: t.isIgnored ?? false
+                isIgnored: t.isIgnored ?? false,
+                isRecurring: t.isRecurring ?? false
             }));
 
             setTransactions(formatted);
@@ -172,6 +173,24 @@ export const Transactions: React.FC = () => {
         }
     };
 
+    const handleMarkAsRecurring = async (description: string) => {
+        try {
+            const preview = await api.previewRecurring(description);
+            if (preview.isRecurring) {
+                alert('Esta descricao ja esta na lista de recorrentes');
+                return;
+            }
+            const message = `Marcar ${preview.count} transacao(oes) "${description}" como recorrente?\n\nValor medio: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(preview.averageAmount)}`;
+            if (confirm(message)) {
+                await api.addRecurringTransaction(description);
+                await loadData();
+            }
+        } catch (err: any) {
+            console.error(err);
+            alert('Falha ao marcar como recorrente');
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-slate-500">Carregando transações...</div>;
     if (error) return <div className="p-8 text-center text-rose-500">{error}</div>;
 
@@ -248,6 +267,7 @@ export const Transactions: React.FC = () => {
                 onEditTransaction={handleEditTransaction}
                 onDeleteTransaction={handleDeleteClick}
                 onIgnoreTransaction={handleIgnoreTransaction}
+                onRecurringTransaction={handleMarkAsRecurring}
             />
 
             <TransactionFormModal

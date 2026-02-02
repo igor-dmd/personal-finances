@@ -5,6 +5,8 @@ import { Categories } from './views/Categories';
 import { Installments } from './views/Installments';
 import { Investments } from './views/Investments';
 import { IgnoredTransactions } from './views/IgnoredTransactions';
+import { RecurringTransactions } from './views/RecurringTransactions';
+import { FuturePlanning } from './views/FuturePlanning';
 import { Layout } from './components/Layout';
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
           <Route path="installments" element={<Installments />} />
           <Route path="investments" element={<Investments />} />
           <Route path="ignored" element={<IgnoredTransactions />} />
+          <Route path="recurring" element={<RecurringTransactions />} />
+          <Route path="planning" element={<FuturePlanning />} />
         </Route>
       </Routes>
     </Router>

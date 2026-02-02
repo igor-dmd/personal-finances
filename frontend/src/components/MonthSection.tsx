@@ -17,6 +17,7 @@ export interface DisplayTransaction {
     installmentNumber: number | null;
     isInvestment: boolean;
     isIgnored: boolean;
+    isRecurring: boolean;
 }
 
 interface MonthSectionProps {
@@ -31,6 +32,7 @@ interface MonthSectionProps {
     onEditTransaction: (transaction: DisplayTransaction) => void;
     onDeleteTransaction: (transaction: DisplayTransaction) => void;
     onIgnoreTransaction?: (description: string) => void;
+    onRecurringTransaction?: (description: string) => void;
     isFirst: boolean;
     isLast: boolean;
     investmentMode?: 'summary' | null;
@@ -47,6 +49,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
     onEditTransaction,
     onDeleteTransaction,
     onIgnoreTransaction,
+    onRecurringTransaction,
     isFirst,
     isLast,
     investmentMode = null
@@ -254,7 +257,7 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {transactions.map((t) => (
-                                        <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr key={t.id} className={`hover:bg-slate-50/50 transition-colors ${t.isRecurring ? 'bg-purple-50/30' : ''}`}>
                                             {investmentMode !== 'summary' && (
                                                 <td className="px-4 py-4 text-center">
                                                     <AccountTypeIcon type={t.type} />
@@ -263,7 +266,12 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                             <td className="px-6 py-4 text-slate-500 whitespace-nowrap">{t.date}</td>
                                             <td className="px-6 py-4 font-medium text-slate-900">
                                                 <div className="flex items-center gap-2">
-                                                    <span>{t.description}</span>
+                                                    <span className={t.isRecurring ? 'text-purple-700' : ''}>{t.description}</span>
+                                                    {t.isRecurring && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                                                            Recorrente
+                                                        </span>
+                                                    )}
                                                     {t.installmentGroupId && t.installmentNumber && (
                                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                                             {t.installmentNumber}/{installmentGroups.get(t.installmentGroupId)?.totalInstallments || '?'}
@@ -356,6 +364,17 @@ export const MonthSection: React.FC<MonthSectionProps> = ({
                                                         >
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                    {onRecurringTransaction && !t.isRecurring && (
+                                                        <button
+                                                            onClick={() => onRecurringTransaction(t.description)}
+                                                            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                                                            title="Marcar como recorrente"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                                             </svg>
                                                         </button>
                                                     )}

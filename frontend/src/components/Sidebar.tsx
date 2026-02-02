@@ -9,6 +9,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeItem = 'Dashboard' }) =>
     const navItems = [
         { name: 'Transactions', icon: '💳', path: '/' },
         { name: 'Installments', icon: '📊', path: '/installments' },
+        { name: 'Recurring', icon: '🔄', path: '/recurring' },
+        { name: 'Planning', icon: '📅', path: '/planning' },
         { name: 'Investments', icon: '💰', path: '/investments' },
         { name: 'Categories', icon: '🏷️', path: '/categories' },
         { name: 'Ignored', icon: '🚫', path: '/ignored' },

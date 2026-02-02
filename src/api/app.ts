@@ -7,6 +7,8 @@ import categories from './routes/categories';
 import installments from './routes/installments';
 import investmentsRoute from './routes/investments';
 import ignoredTransactions from './routes/ignored-transactions';
+import recurringTransactions from './routes/recurring-transactions';
+import futurePlanning from './routes/future-planning';
 
 const app = new Hono();
 
@@ -21,5 +23,7 @@ app.route('/categories', categories);
 app.route('/installments', installments);
 app.route('/investments', investmentsRoute);
 app.route('/ignored-transactions', ignoredTransactions);
+app.route('/recurring-transactions', recurringTransactions);
+app.route('/future-planning', futurePlanning);
 
 export default app;
