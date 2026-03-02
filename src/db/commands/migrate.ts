@@ -1,5 +1,5 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { db } from './index';
+import { db } from '../index';
 
 // Verify that the migrations folder exists or handle it
 console.log('Running migrations...');

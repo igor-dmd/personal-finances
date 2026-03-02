@@ -8,9 +8,9 @@
         "build": "tsc",
         "start": "node dist/index.js",
         "db:generate": "drizzle-kit generate:sqlite",
-        "db:migrate": "tsx src/db/migrate.ts",
-        "db:seed": "tsx src/scripts/seed.ts",
-        "db:reset": "tsx src/scripts/reset.ts",
+        "db:migrate": "tsx src/db/commands/migrate.ts",
+        "db:seed": "tsx src/db/commands/seed.ts",
+        "db:reset": "tsx src/db/commands/reset.ts",
         "api:dev": "tsx watch src/api/index.ts",
         "test": "vitest run"
     },

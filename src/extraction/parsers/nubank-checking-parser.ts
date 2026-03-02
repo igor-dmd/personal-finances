@@ -17,10 +17,6 @@ export class NubankCheckingParser implements BillParser {
     transactionType = TRANSACTION_TYPES.CHECKING;
 
     supports(filename: string, content: Buffer): boolean {
-        // We rely on the processor to use header validation or user selection, 
-        // but for auto-detection or safety check, we can check headers here too.
-        // However, the interface only asks if it supports the file.
-        // Let's implement a basic check.
         return filename.toLowerCase().endsWith('.csv');
     }
 

@@ -1,6 +1,6 @@
 
-import { db } from '../db';
-import { accounts, categories, transactions, importJobs } from '../db/schema';
+import { db } from '..';
+import { accounts, categories, transactions, importJobs } from '../schema';
 import { sql } from 'drizzle-orm';
 
 async function reset() {

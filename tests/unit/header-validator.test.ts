@@ -17,6 +17,13 @@ describe('Header Validator', () => {
         expect(result.isValid).toBe(false);
     });
 
+    test('invalidate empty headers', () => {
+        const content = '\n...';
+        const expected = [];
+        const result = validateCsvHeaders(content, expected);
+        expect(result.isValid).toBe(false);
+    });
+
     test('suggests correct parser', () => {
         const content = 'Data,Valor,Identificador,Descrição\n...';
         const suggestion = suggestParser(content.split('\n')[0].split(','));

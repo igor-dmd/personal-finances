@@ -8,6 +8,7 @@ interface InstallmentInfo {
     totalInstallments: number;
 }
 
+//TODO: Add it to normalizers
 function parseInstallmentFromDescription(description: string): InstallmentInfo | null {
     // Pattern: "Merchant - Parcela 4/10" or "Merchant Parcela 4/10"
     const parcelaPattern = /(.*?)\s*-?\s*Parcela\s+(\d+)\/(\d+)/i;

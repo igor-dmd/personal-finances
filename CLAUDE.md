@@ -130,11 +130,3 @@ Key components:
 
 - `DATABASE_URL` - Database file path (default: `sqlite.db`)
 - `VITE_API_URL` - Frontend API base URL (default: `http://localhost:3000`)
-
-## Agent Rules
-
-The `.agent/rules/plan.md` file instructs agents to update PLAN.md when tasks advance or the technology stack changes.
-
-## Planning new features
-
-Everytime a new plan for implementing a feature is created, add it as a new section in PLAN.md. Remove the section when the feature is implemented.
