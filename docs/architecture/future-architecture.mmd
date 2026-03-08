@@ -1,0 +1,117 @@
+flowchart LR
+    subgraph FE[Frontend]
+        Router[App Router]
+        FeatureViews[Feature Views]
+        FeatureApi["Feature API clients<br/>transactions/imports/investments"]
+        Router --> FeatureViews --> FeatureApi
+    end
+
+    subgraph HTTP[Backend HTTP Layer]
+        Hono[Hono App]
+        TxApi[transactions/api]
+        ImportApi[imports/api]
+        InstApi[installments/api]
+        InvApi[investments/api]
+        RecApi[recurring/api]
+        PlanApi[planning/api]
+        Hono --> TxApi
+        Hono --> ImportApi
+        Hono --> InstApi
+        Hono --> InvApi
+        Hono --> RecApi
+        Hono --> PlanApi
+    end
+
+    subgraph APP[Application Layer]
+        TxSvc[Transactions Services]
+        ImportSvc[Import Services]
+        InstSvc[Installment Services]
+        InvSvc[Investment Services]
+        RecSvc[Recurring Services]
+        PlanSvc[Planning Services]
+    end
+
+    subgraph DOMAIN[Domain Layer]
+        Policies[Policies + Value Objects]
+        Rules[Classification and Planning Rules]
+    end
+
+    subgraph SHARED[Shared Cross-Cutting]
+        SharedApi[shared/api]
+        SharedApp[shared/application]
+        SharedDomain[shared/domain]
+        SharedData[shared/data]
+        SharedHttp[shared/http]
+        SharedTypes[shared/types]
+    end
+
+    subgraph CONFIG[Shared Config]
+        Institutions["shared/config<br/>institutions loader"]
+        EnvConfig["shared/config<br/>env + app settings"]
+    end
+
+    subgraph EXTRACTION[Shared Extraction]
+        Processor[Extraction Processor]
+        ParserRegistry[Parser Registry]
+        Parsers[Bank Parsers]
+        Normalizers[Description Normalizers]
+        Processor --> ParserRegistry --> Parsers
+        Parsers --> Normalizers
+    end
+
+    subgraph DATA[Data Layer]
+        TxRepo[TransactionsRepository]
+        ImportRepo[ImportJobsRepository]
+        InstRepo[InstallmentsRepository]
+        InvRepo[InvestmentsRepository]
+        RecRepo[RecurringRepository]
+        DbClient[Drizzle Client]
+        SQLite[(SQLite)]
+        TxRepo --> DbClient
+        ImportRepo --> DbClient
+        InstRepo --> DbClient
+        InvRepo --> DbClient
+        RecRepo --> DbClient
+        DbClient --> SQLite
+    end
+
+    FeatureApi --> Hono
+
+    TxApi --> TxSvc
+    ImportApi --> ImportSvc
+    InstApi --> InstSvc
+    InvApi --> InvSvc
+    RecApi --> RecSvc
+    PlanApi --> PlanSvc
+
+    TxApi --> SharedHttp
+    ImportApi --> SharedHttp
+    InstApi --> SharedHttp
+    InvApi --> SharedHttp
+    RecApi --> SharedHttp
+    PlanApi --> SharedHttp
+
+    TxSvc --> Policies
+    ImportSvc --> Policies
+    InstSvc --> Rules
+    PlanSvc --> Rules
+
+    TxSvc --> TxRepo
+    ImportSvc --> ImportRepo
+    InstSvc --> InstRepo
+    InvSvc --> InvRepo
+    RecSvc --> RecRepo
+    PlanSvc --> InstRepo
+    PlanSvc --> RecRepo
+
+    ImportSvc --> Processor
+
+    TxApi --> Institutions
+    InstApi --> Institutions
+    InvApi --> Institutions
+    Hono --> EnvConfig
+
+    SharedApi --> SharedApp --> SharedDomain
+    SharedApp --> SharedData
+    SharedApp --> SharedTypes
+    SharedData --> DbClient

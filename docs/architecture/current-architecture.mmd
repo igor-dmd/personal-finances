@@ -1,0 +1,66 @@
+flowchart LR
+    subgraph FE[Frontend React/Vite]
+        App[App Router]
+        Views[Views Components]
+        ApiClient[lib/api.ts]
+        ImportView["views/Import.tsx<br/>(raw fetch hardcoded)"]
+        App --> Views
+        Views --> ApiClient
+        Views --> ImportView
+    end
+
+    subgraph API[Backend Hono API]
+        AppTs[api/app.ts]
+        TxRoute[transactions route]
+        CatRoute[categories route]
+        InstRoute[installments route]
+        InvRoute[investments route]
+        IgRoute[ignored route]
+        RecRoute[recurring route]
+        PlanRoute[future-planning route]
+        AppTs --> TxRoute
+        AppTs --> CatRoute
+        AppTs --> InstRoute
+        AppTs --> InvRoute
+        AppTs --> IgRoute
+        AppTs --> RecRoute
+        AppTs --> PlanRoute
+    end
+
+    subgraph DomainLike[Business Logic Placement Today]
+        Repo["FinanceRepository<br/>(multi-domain)"]
+        Processor[ExtractionProcessor]
+        Parsers[Parsers]
+        TxRoute --> Processor
+        Processor --> Parsers
+        TxRoute --> Repo
+        CatRoute --> Repo
+        InstRoute --> Repo
+        InvRoute --> Repo
+        IgRoute --> Repo
+        RecRoute --> Repo
+        PlanRoute --> Repo
+    end
+
+    subgraph DB[SQLite + Drizzle]
+        Schema[schema.ts tables]
+        Sqlite[(sqlite.db)]
+        Repo --> Schema
+        Schema --> Sqlite
+    end
+
+    subgraph PAIN[Current Pain Points]
+        P1["P1: FinanceRepository concentration<br/>(god object)"]
+        P2["P2: Duplicated institutions config loading<br/>across transactions/installments/investments routes"]
+        P3["P3: Import view bypasses shared API client<br/>(direct hardcoded fetch calls)"]
+    end
+
+    ApiClient --> AppTs
+    ImportView --> AppTs
+
+    P1 -.-> Repo
+    P2 -.-> TxRoute
+    P2 -.-> InstRoute
+    P2 -.-> InvRoute
+    P3 -.-> ImportView
+    P3 -.-> ApiClient
