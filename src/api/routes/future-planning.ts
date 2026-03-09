@@ -1,18 +1,17 @@
 import { Hono } from 'hono';
-import { FinanceRepository } from '../../db/repository';
 import { z } from 'zod';
+import { FuturePlanningRepository } from '../../modules/planning/data/future-planning-repository';
 
 const futurePlanning = new Hono();
-const repo = new FinanceRepository();
+const futurePlanningRepository = new FuturePlanningRepository();
 
 const monthsSchema = z.object({
-    months: z.string().optional().transform((val) => val ? parseInt(val, 10) : 6),
+    months: z.string().optional().transform((value) => (value ? Number.parseInt(value, 10) : 6)),
 });
 
-// GET / - Get combined future planning data
 futurePlanning.get('/', async (c) => {
     const { months } = monthsSchema.parse(c.req.query());
-    const data = await repo.getFuturePlanningData(months);
+    const data = await futurePlanningRepository.getData(months);
     return c.json(data);
 });
 

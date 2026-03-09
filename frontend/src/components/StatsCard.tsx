@@ -10,7 +10,7 @@ interface StatsCardProps {
 
 export const StatsCard: React.FC<StatsCardProps> = ({ title, value, trend, trendValue, icon }) => {
     return (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100 flex flex-col justify-between h-32 relative overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm p-6 border border-slate-200/60 flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
             <div className="flex justify-between items-start">
                 <span className="text-slate-500 text-sm font-medium">{title}</span>
                 {icon && <div className="text-slate-400">{icon}</div>}

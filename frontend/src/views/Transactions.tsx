@@ -1,4 +1,5 @@
 import React from 'react';
+import { Plus, EyeOff } from 'lucide-react';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FilterDropdown } from '../components/FilterDropdown';
 import { TransactionStats } from '../components/TransactionStats';
@@ -206,33 +207,32 @@ export const Transactions: React.FC = () => {
     ];
 
     return (
-        <div>
-            <div className="mb-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-800">Transações</h2>
-                        <p className="text-slate-500 mt-1">Visualize e gerencie suas transações financeiras</p>
-                    </div>
-                    <div className="flex gap-3 items-center">
-                        <button
-                            onClick={handleAddTransaction}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                            </svg>
-                            Adicionar Transação
-                        </button>
-                        <button
-                            onClick={() => setShowIgnored(!showIgnored)}
-                            className={`px-3 py-1.5 text-sm rounded-lg border ${
-                                showIgnored
-                                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
-                        >
-                            {showIgnored ? 'Ocultar Ignoradas' : 'Mostrar Ignoradas'}
-                        </button>
+        <div className="max-w-6xl mx-auto">
+            <div className="mb-8 p-6 bg-white/60 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                <div>
+                    <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight">Transações</h2>
+                    <p className="text-slate-500 mt-1.5 font-medium">Visualize e gerencie suas movimentações financeiras</p>
+                </div>
+                <div className="flex flex-wrap gap-3 items-center">
+                    <button
+                        onClick={handleAddTransaction}
+                        className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/20 transition-all duration-200 font-medium flex items-center gap-2"
+                    >
+                        <Plus size={18} strokeWidth={2.5} />
+                        Nova Transação
+                    </button>
+                    <button
+                        onClick={() => setShowIgnored(!showIgnored)}
+                        className={`px-4 py-2.5 text-sm font-medium rounded-xl border transition-all duration-200 flex items-center gap-2 ${
+                            showIgnored
+                                ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm'
+                        }`}
+                    >
+                        <EyeOff size={16} />
+                        {showIgnored ? 'Ocultar Ignoradas' : 'Ver Ignoradas'}
+                    </button>
+                    <div className="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
                         <SegmentedControl
                             options={FILTER_OPTIONS}
                             value={filters.direction}
@@ -240,21 +240,21 @@ export const Transactions: React.FC = () => {
                         />
                     </div>
                 </div>
+            </div>
 
-                <div className="flex flex-wrap gap-3">
-                    <FilterDropdown
-                        label="Tipo de Conta"
-                        options={accountTypeOptions}
-                        value={filters.accountType}
-                        onChange={(value) => setFilters({ ...filters, accountType: value as 'all' | 'credit_card' | 'checking' })}
-                    />
-                    <FilterDropdown
-                        label="Categoria"
-                        options={categoryOptions}
-                        value={filters.categoryId}
-                        onChange={(value) => setFilters({ ...filters, categoryId: value as number | null })}
-                    />
-                </div>
+            <div className="flex flex-wrap gap-4 mb-6 px-1">
+                <FilterDropdown
+                    label="Tipo de Conta"
+                    options={accountTypeOptions}
+                    value={filters.accountType}
+                    onChange={(value) => setFilters({ ...filters, accountType: value as 'all' | 'credit_card' | 'checking' })}
+                />
+                <FilterDropdown
+                    label="Categoria"
+                    options={categoryOptions}
+                    value={filters.categoryId}
+                    onChange={(value) => setFilters({ ...filters, categoryId: value as number | null })}
+                />
             </div>
 
             <TransactionStats transactions={transactions} />

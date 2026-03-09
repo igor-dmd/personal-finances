@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
-import { FinanceRepository } from '../../db/repository';
+import { ImportJobsRepository } from '../../modules/imports/data/import-jobs-repository';
+import { parseIdParam } from '../../shared/http/params';
 
 const importJobs = new Hono();
-const repo = new FinanceRepository();
+const importJobsRepository = new ImportJobsRepository();
 
 importJobs.get('/', async (c) => {
     try {
-        console.log('[API] Fetching import jobs...');
-        const data = await repo.getImportJobs();
+        const data = await importJobsRepository.list();
         return c.json(data);
     } catch (error: any) {
         console.error('[API] Error fetching import jobs:', error);
@@ -17,17 +17,15 @@ importJobs.get('/', async (c) => {
 
 importJobs.delete('/:id', async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        console.log(`[API] Deleting import job ${id}...`);
-        await repo.deleteImportJob(id);
-
+        await importJobsRepository.deleteWithTransactions(id);
         return c.json({ message: 'Importação e transações excluídas com sucesso' });
     } catch (error: any) {
-        console.error(`[API] Error deleting import job ${c.req.param('id')}:`, error);
+        console.error('[API] Error deleting import job:', error);
         return c.json({ error: error.message }, 500);
     }
 });

@@ -22,11 +22,13 @@ export const Layout: React.FC = () => {
     const activeItem = getActiveItem();
 
     return (
-        <div className="min-h-screen bg-slate-50 flex">
+        <div className="min-h-screen flex text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
             <Sidebar activeItem={activeItem} />
 
-            <main className="flex-1 md:ml-64 p-8">
-                <Outlet />
+            <main className="flex-1 md:ml-64 p-4 md:p-8 transition-all duration-300">
+                <div className="max-w-7xl mx-auto">
+                    <Outlet />
+                </div>
             </main>
         </div>
     );

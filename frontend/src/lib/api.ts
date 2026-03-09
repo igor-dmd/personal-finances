@@ -84,6 +84,20 @@ export interface InstitutionsConfig {
     accountTypeLabels: Record<string, string>;
 }
 
+export interface ParserType {
+    name: string;
+    identifier: string;
+    transactionType?: string;
+}
+
+export interface ImportJob {
+    id: number;
+    filename: string;
+    type: string;
+    status: string;
+    createdAt: string;
+}
+
 // Investment types
 export type InvestmentType =
     | 'RDB' | 'CDB' | 'LCI' | 'LCA'
@@ -247,6 +261,59 @@ export const api = {
             throw new Error('Failed to fetch institutions config');
         }
         return response.json();
+    },
+
+    getParserTypes: async (): Promise<ParserType[]> => {
+        const response = await fetch(`${API_URL}/transactions/parser-types`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch parser types');
+        }
+        return response.json();
+    },
+
+    uploadTransactionsFile: async (
+        file: File,
+        parserType: string
+    ): Promise<{ message: string; count: number; jobId: number }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', parserType);
+
+        const response = await fetch(`${API_URL}/transactions/upload`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to upload transactions');
+        }
+
+        return data;
+    },
+
+    getImportJobs: async (): Promise<ImportJob[]> => {
+        const response = await fetch(`${API_URL}/import-jobs`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch import jobs');
+        }
+        return response.json();
+    },
+
+    deleteImportJob: async (id: number): Promise<{ message?: string }> => {
+        const response = await fetch(`${API_URL}/import-jobs/${id}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to delete import job');
+        }
+        const contentType = response.headers?.get?.('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().catch(() => ({}));
+        }
+        return {};
     },
 
     createTransaction: async (data: CreateTransactionData): Promise<{ success: boolean; transaction: Transaction }> => {

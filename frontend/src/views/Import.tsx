@@ -1,13 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { UploadCloud, FileText, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { formatDate } from '../utils/date';
-
-export interface ImportJob {
-    id: number;
-    filename: string;
-    type: string;
-    status: string;
-    createdAt: string;
-}
+import { api, type ImportJob, type ParserType } from '../lib/api';
 
 export const Import: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
@@ -16,7 +10,7 @@ export const Import: React.FC = () => {
     const [jobs, setJobs] = useState<ImportJob[]>([]);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
-    const [parserTypes, setParserTypes] = useState<{ name: string; identifier: string }[]>([]);
+    const [parserTypes, setParserTypes] = useState<ParserType[]>([]);
     const [selectedParser, setSelectedParser] = useState<string>('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const historyRef = useRef<HTMLDivElement>(null);
@@ -24,11 +18,8 @@ export const Import: React.FC = () => {
     const fetchJobs = async () => {
         setIsLoadingJobs(true);
         try {
-            const response = await fetch('http://localhost:3000/import-jobs');
-            const data = await response.json();
-            if (response.ok) {
-                setJobs(data);
-            }
+            const data = await api.getImportJobs();
+            setJobs(data);
         } catch (error) {
             console.error('Error fetching jobs:', error);
         } finally {
@@ -39,12 +30,9 @@ export const Import: React.FC = () => {
     useEffect(() => {
         const fetchParsers = async () => {
             try {
-                const response = await fetch('http://localhost:3000/transactions/parser-types');
-                if (response.ok) {
-                    const data = await response.json();
-                    setParserTypes(data);
-                    if (data.length > 0) setSelectedParser(data[0].identifier);
-                }
+                const data = await api.getParserTypes();
+                setParserTypes(data);
+                if (data.length > 0) setSelectedParser(data[0].identifier);
             } catch (error) {
                 console.error('Error fetching parsers:', error);
             }
@@ -86,21 +74,8 @@ export const Import: React.FC = () => {
         setStatus('uploading');
         setMessage('');
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('type', selectedParser);
-
         try {
-            const response = await fetch('http://localhost:3000/transactions/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Falha no upload');
-            }
+            const data = await api.uploadTransactionsFile(file, selectedParser);
 
             setStatus('success');
             setMessage(`${data.count} transações importadas com sucesso.`);
@@ -121,20 +96,11 @@ export const Import: React.FC = () => {
         setConfirmingId(null);
 
         try {
-            const response = await fetch(`http://localhost:3000/import-jobs/${id}`, {
-                method: 'DELETE',
-            });
-
-            if (response.ok) {
-                console.log(`[Import] Job ${id} deleted successfully`);
-                setMessage('Importação revertida com sucesso.');
-                setStatus('success');
-                fetchJobs();
-            } else {
-                const data = await response.json();
-                console.error(`[Import] Failed to delete job ${id}:`, data.error);
-                throw new Error(data.error || 'Falha ao deletar job');
-            }
+            await api.deleteImportJob(id);
+            console.log(`[Import] Job ${id} deleted successfully`);
+            setMessage('Importação revertida com sucesso.');
+            setStatus('success');
+            fetchJobs();
         } catch (error: any) {
             console.error(`[Import] Error in handleDeleteJob for ${id}:`, error);
             setMessage(error.message);
@@ -157,7 +123,7 @@ export const Import: React.FC = () => {
                 </button>
             </header>
 
-            <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-slate-200/60 shadow-sm relative overflow-hidden">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Configuration Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -184,9 +150,9 @@ export const Import: React.FC = () => {
                     <div
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
-                        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 cursor-pointer ${file
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
+                        className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 cursor-pointer group ${file
+                            ? 'border-indigo-500 bg-indigo-50/50'
+                            : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
                             }`}
                         onClick={() => fileInputRef.current?.click()}
                     >
@@ -199,9 +165,9 @@ export const Import: React.FC = () => {
                         />
 
                         <div className="flex flex-col items-center gap-4">
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl mb-2 ${file ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 transition-transform duration-300 group-hover:scale-110 ${file ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'
                                 }`}>
-                                {file ? '📄' : '📥'}
+                                {file ? <FileText size={32} /> : <UploadCloud size={32} />}
                             </div>
 
                             {file ? (
@@ -222,13 +188,13 @@ export const Import: React.FC = () => {
                     <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                         <div className="flex-1 mr-4">
                             {message && (
-                                <div className={`px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2 ${status === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                    status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' :
+                                <div className={`px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 shadow-sm ${status === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                    status === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
                                         'bg-blue-50 text-blue-700 border border-blue-200'
                                     }`}>
-                                    {status === 'success' && '✅'}
-                                    {status === 'error' && '⚠️'}
-                                    {status === 'uploading' && '⏳'}
+                                    {status === 'success' && <CheckCircle size={18} className="text-emerald-600" />}
+                                    {status === 'error' && <AlertTriangle size={18} className="text-rose-600" />}
+                                    {status === 'uploading' && <Loader2 size={18} className="animate-spin text-blue-600" />}
                                     {message}
                                 </div>
                             )}
@@ -237,9 +203,9 @@ export const Import: React.FC = () => {
                         <button
                             type="submit"
                             disabled={!file || status === 'uploading'}
-                            className={`px-8 py-3 rounded-lg font-medium text-white transition-all transform hover:scale-105 active:scale-95 ${!file || status === 'uploading'
-                                ? 'bg-slate-400 cursor-not-allowed opacity-75'
-                                : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/20'
+                            className={`px-8 py-3 rounded-xl font-medium text-white transition-all transform  ${!file || status === 'uploading'
+                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                                : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-lg shadow-indigo-600/20 hover:-translate-y-0.5'
                                 }`}
                         >
                             {status === 'uploading' ? 'Importando...' : 'Confirmar Importação'}
@@ -249,7 +215,7 @@ export const Import: React.FC = () => {
             </div>
 
             {/* Import History Table */}
-            <div ref={historyRef} className="mt-12 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div ref={historyRef} className="mt-12 bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h2 className="text-xl font-semibold text-slate-900">Histórico de Importação</h2>
                     {isLoadingJobs && <span className="text-sm text-slate-500 animate-pulse">Atualizando...</span>}

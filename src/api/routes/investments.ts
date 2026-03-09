@@ -1,31 +1,38 @@
 import { Hono } from 'hono';
-import { FinanceRepository } from '../../db/repository';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { parseIdParam } from '../../shared/http/params';
+import { InvestmentsRepository } from '../../modules/investments/data/investments-repository';
+import { CreateInvestmentWithAccountService } from '../../modules/investments/application/create-investment-with-account-service';
 
 const investmentsRoute = new Hono();
-const repo = new FinanceRepository();
+const investmentsRepository = new InvestmentsRepository();
+const createInvestmentWithAccountService = new CreateInvestmentWithAccountService();
 
-// Load institutions config
-const institutionsConfigPath = join(process.cwd(), 'config', 'institutions.json');
-const institutionsConfig = JSON.parse(readFileSync(institutionsConfigPath, 'utf-8'));
-
-// Investment types enum
 const investmentTypes = z.enum([
-    'RDB', 'CDB', 'LCI', 'LCA',
-    'Tesouro Direto', 'Tesouro Selic', 'Tesouro IPCA+', 'Tesouro Prefixado',
-    'Outros'
+    'RDB',
+    'CDB',
+    'LCI',
+    'LCA',
+    'Tesouro Direto',
+    'Tesouro Selic',
+    'Tesouro IPCA+',
+    'Tesouro Prefixado',
+    'Outros',
 ]);
 
 export const INVESTMENT_TYPES = [
-    'RDB', 'CDB', 'LCI', 'LCA',
-    'Tesouro Direto', 'Tesouro Selic', 'Tesouro IPCA+', 'Tesouro Prefixado',
-    'Outros'
+    'RDB',
+    'CDB',
+    'LCI',
+    'LCA',
+    'Tesouro Direto',
+    'Tesouro Selic',
+    'Tesouro IPCA+',
+    'Tesouro Prefixado',
+    'Outros',
 ] as const;
 
-// Validation schemas
 const createInvestmentSchema = z.object({
     institutionId: z.string().min(1, 'Instituição é obrigatória'),
     type: investmentTypes,
@@ -53,16 +60,13 @@ const updateMovementSchema = z.object({
     description: z.string().nullable().optional(),
 });
 
-// GET /investments/types - Get list of valid investment types
 investmentsRoute.get('/types', (c) => {
     return c.json(INVESTMENT_TYPES);
 });
 
-// GET /investments - List all investments with summaries
 investmentsRoute.get('/', async (c) => {
     try {
-        console.log('[API] Fetching investments...');
-        const data = await repo.getInvestments();
+        const data = await investmentsRepository.list();
         return c.json(data);
     } catch (error: any) {
         console.error('[API] Error fetching investments:', error);
@@ -70,17 +74,14 @@ investmentsRoute.get('/', async (c) => {
     }
 });
 
-// GET /investments/:id - Get single investment with movements
 investmentsRoute.get('/:id', async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        console.log(`[API] Fetching investment ${id}...`);
-        const investment = await repo.getInvestment(id);
-
+        const investment = await investmentsRepository.getById(id);
         if (!investment) {
             return c.json({ error: 'Investimento não encontrado' }, 404);
         }
@@ -92,56 +93,34 @@ investmentsRoute.get('/:id', async (c) => {
     }
 });
 
-// POST /investments - Create new investment
 investmentsRoute.post('/', zValidator('json', createInvestmentSchema), async (c) => {
     try {
         const data = c.req.valid('json');
-        console.log('[API] Creating investment...', data);
 
-        // Find institution in config
-        const institution = institutionsConfig.institutions.find((i: any) => i.id === data.institutionId);
-        if (!institution) {
-            return c.json({ error: 'Instituição não encontrada' }, 400);
-        }
+        const investment = await createInvestmentWithAccountService.execute(data);
 
-        // Create account name from institution name + investment label
-        const typeLabel = institutionsConfig.accountTypeLabels['investment'];
-        const accountName = `${institution.name} ${typeLabel}`;
-
-        // Find or create account
-        const account = await repo.getOrCreateAccount(accountName, 'investment');
-
-        // Create investment
-        const investment = await repo.createInvestment({
-            accountId: account.id,
-            type: data.type,
-            name: data.name,
-            currentValue: data.currentValue,
-        });
-
-        console.log(`[API] Created investment ${investment.id}`);
         return c.json({
             success: true,
             investment,
         });
     } catch (error: any) {
         console.error('[API] Error creating investment:', error);
+        if (error.message === 'Instituição não encontrada' || error.message.includes('Tipo de conta')) {
+            return c.json({ error: error.message }, 400);
+        }
         return c.json({ error: error.message }, 500);
     }
 });
 
-// PATCH /investments/:id - Update investment
 investmentsRoute.patch('/:id', zValidator('json', updateInvestmentSchema), async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
         const body = c.req.valid('json');
-        console.log(`[API] Updating investment ${id}...`, body);
-
-        await repo.updateInvestment(id, body);
+        await investmentsRepository.update(id, body);
 
         return c.json({ success: true });
     } catch (error: any) {
@@ -150,16 +129,14 @@ investmentsRoute.patch('/:id', zValidator('json', updateInvestmentSchema), async
     }
 });
 
-// DELETE /investments/:id - Delete investment and all movements
 investmentsRoute.delete('/:id', async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        console.log(`[API] Deleting investment ${id}...`);
-        await repo.deleteInvestment(id);
+        await investmentsRepository.delete(id);
 
         return c.json({
             success: true,
@@ -171,26 +148,21 @@ investmentsRoute.delete('/:id', async (c) => {
     }
 });
 
-// ==================== Movement Endpoints ====================
-
-// POST /investments/:id/movements - Add movement to investment
 investmentsRoute.post('/:id/movements', zValidator('json', createMovementSchema), async (c) => {
     try {
-        const investmentId = parseInt(c.req.param('id'));
-        if (isNaN(investmentId)) {
+        const investmentId = parseIdParam(c);
+        if (investmentId === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        // Check if investment exists
-        const investment = await repo.getInvestment(investmentId);
+        const investment = await investmentsRepository.getById(investmentId);
         if (!investment) {
             return c.json({ error: 'Investimento não encontrado' }, 404);
         }
 
         const data = c.req.valid('json');
-        console.log(`[API] Creating movement for investment ${investmentId}...`, data);
 
-        const movement = await repo.createInvestmentMovement({
+        const movement = await investmentsRepository.createMovement({
             investmentId,
             type: data.type,
             date: data.date,
@@ -198,7 +170,6 @@ investmentsRoute.post('/:id/movements', zValidator('json', createMovementSchema)
             description: data.description,
         });
 
-        console.log(`[API] Created movement ${movement.id}`);
         return c.json({
             success: true,
             movement,
@@ -209,20 +180,17 @@ investmentsRoute.post('/:id/movements', zValidator('json', createMovementSchema)
     }
 });
 
-// PATCH /investments/:id/movements/:movementId - Update movement
 investmentsRoute.patch('/:id/movements/:movementId', zValidator('json', updateMovementSchema), async (c) => {
     try {
-        const investmentId = parseInt(c.req.param('id'));
-        const movementId = parseInt(c.req.param('movementId'));
+        const investmentId = parseIdParam(c);
+        const movementId = parseIdParam(c, 'movementId');
 
-        if (isNaN(investmentId) || isNaN(movementId)) {
+        if (investmentId === null || movementId === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
         const body = c.req.valid('json');
-        console.log(`[API] Updating movement ${movementId}...`, body);
-
-        await repo.updateInvestmentMovement(movementId, body);
+        await investmentsRepository.updateMovement(movementId, body);
 
         return c.json({ success: true });
     } catch (error: any) {
@@ -231,18 +199,16 @@ investmentsRoute.patch('/:id/movements/:movementId', zValidator('json', updateMo
     }
 });
 
-// DELETE /investments/:id/movements/:movementId - Delete movement
 investmentsRoute.delete('/:id/movements/:movementId', async (c) => {
     try {
-        const investmentId = parseInt(c.req.param('id'));
-        const movementId = parseInt(c.req.param('movementId'));
+        const investmentId = parseIdParam(c);
+        const movementId = parseIdParam(c, 'movementId');
 
-        if (isNaN(investmentId) || isNaN(movementId)) {
+        if (investmentId === null || movementId === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        console.log(`[API] Deleting movement ${movementId}...`);
-        await repo.deleteInvestmentMovement(movementId);
+        await investmentsRepository.deleteMovement(movementId);
 
         return c.json({
             success: true,

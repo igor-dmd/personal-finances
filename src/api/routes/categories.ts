@@ -1,13 +1,12 @@
-
 import { Hono } from 'hono';
-import { FinanceRepository } from '../../db/repository';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
+import { CategoriesRepository } from '../../modules/transactions/data/categories-repository';
+import { parseIdParam } from '../../shared/http/params';
 
 const categories = new Hono();
-const repo = new FinanceRepository();
+const categoriesRepository = new CategoriesRepository();
 
-// Schema for category validation
 const createCategorySchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório'),
 });
@@ -18,7 +17,7 @@ const updateCategorySchema = z.object({
 
 categories.get('/', async (c) => {
     try {
-        const data = await repo.getCategories();
+        const data = await categoriesRepository.list();
         return c.json(data);
     } catch (error: any) {
         console.error('[API] Error fetching categories:', error);
@@ -29,8 +28,7 @@ categories.get('/', async (c) => {
 categories.post('/', zValidator('json', createCategorySchema), async (c) => {
     try {
         const { name } = c.req.valid('json');
-        console.log(`[API] Creating category: ${name}`);
-        const result = await repo.createCategory(name);
+        const result = await categoriesRepository.create(name);
         return c.json(result);
     } catch (error: any) {
         console.error('[API] Error creating category:', error);
@@ -40,33 +38,31 @@ categories.post('/', zValidator('json', createCategorySchema), async (c) => {
 
 categories.patch('/:id', zValidator('json', updateCategorySchema), async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
         const { name } = c.req.valid('json');
-        console.log(`[API] Updating category ${id}: ${name}`);
-        await repo.updateCategory(id, name);
+        await categoriesRepository.update(id, name);
         return c.json({ success: true });
     } catch (error: any) {
-        console.error(`[API] Error updating category:`, error);
+        console.error('[API] Error updating category:', error);
         return c.json({ error: error.message }, 500);
     }
 });
 
 categories.delete('/:id', async (c) => {
     try {
-        const id = parseInt(c.req.param('id'));
-        if (isNaN(id)) {
+        const id = parseIdParam(c);
+        if (id === null) {
             return c.json({ error: 'ID inválido' }, 400);
         }
 
-        console.log(`[API] Deleting category ${id}...`);
-        await repo.deleteCategory(id);
+        await categoriesRepository.delete(id);
         return c.json({ message: 'Categoria excluída com sucesso' });
     } catch (error: any) {
-        console.error(`[API] Error deleting category ${c.req.param('id')}:`, error);
+        console.error('[API] Error deleting category:', error);
         return c.json({ error: error.message }, 500);
     }
 });

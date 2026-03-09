@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import * as fs from 'fs';
-import { ExtractionProcessor } from './extraction/processor';
-import { FinanceRepository } from './db/repository';
+import { ProcessImportFileService } from './modules/transactions/application/process-import-file-service';
 
 const program = new Command();
 
@@ -23,22 +22,15 @@ program
             }
 
             const content = fs.readFileSync(filepath);
-            const processor = new ExtractionProcessor();
-            const repo = new FinanceRepository();
+            const processImportFileService = new ProcessImportFileService();
 
             console.log('Extraindo transações...');
-            const transactions = await processor.processByType(filepath, content, type);
-            console.log(`Extraídas ${transactions.length} transações.`);
-
-            console.log('Salvando no banco de dados...');
-            // For now, we hardcode the account based on the type or just use a default "Nubank"
-            const accountName = 'Nubank Credit Card';
-            const account = await repo.getOrCreateAccount(accountName, 'credit_card');
-
-            const job = await repo.createImportJob(filepath, 'pending', type);
-
-            await repo.saveTransactions(transactions, account.id, job.id);
-            await repo.updateImportJobStatus(job.id, 'completed');
+            const result = await processImportFileService.execute({
+                fileName: filepath,
+                content,
+                parserType: type,
+            });
+            console.log(`Extraídas ${result.count} transações.`);
 
             console.log('Transações salvas com sucesso.');
 
