@@ -1,17 +1,40 @@
 
 import { db } from '..';
-import { accounts, categories, transactions, importJobs } from '../schema';
-import { sql } from 'drizzle-orm';
+import {
+    accounts,
+    categories,
+    ignoredDescriptions,
+    importJobs,
+    installmentGroups,
+    investmentMovements,
+    investments,
+    recurringTransactions,
+    transactions,
+} from '../schema';
 
 async function reset() {
     console.log('Resetting database...');
 
     try {
         // Delete in reverse order of dependencies to avoid foreign key constraint violations
-        // transactions -> importJobs -> categories -> accounts
+
+        console.log('Deleting investment movements...');
+        await db.delete(investmentMovements).run();
+
+        console.log('Deleting investments...');
+        await db.delete(investments).run();
+
+        console.log('Deleting recurring transactions...');
+        await db.delete(recurringTransactions).run();
+
+        console.log('Deleting ignored descriptions...');
+        await db.delete(ignoredDescriptions).run();
 
         console.log('Deleting transactions...');
         await db.delete(transactions).run();
+
+        console.log('Deleting installment groups...');
+        await db.delete(installmentGroups).run();
 
         console.log('Deleting import jobs...');
         await db.delete(importJobs).run();
