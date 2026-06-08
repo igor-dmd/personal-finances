@@ -1,17 +1,42 @@
-FROM node:20-slim
+FROM node:20-slim AS backend-deps
 
 WORKDIR /app
 
-COPY package.json .
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
+FROM node:20-slim AS frontend-deps
 
-# Copy the rest of the application code
+WORKDIR /app/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+FROM node:20-slim AS build
+
+WORKDIR /app
+
+COPY --from=backend-deps /app/node_modules ./node_modules
+COPY --from=frontend-deps /app/frontend/node_modules ./frontend/node_modules
 COPY . .
 
-# Expose port (if needed for future frontend or API)
+RUN npm run build:all
+
+FROM node:20-slim AS runtime
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DATABASE_URL=/data/sqlite.db
+
+WORKDIR /app
+RUN mkdir -p /data
+
+COPY package.json package-lock.json ./
+COPY --from=backend-deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/frontend/dist ./frontend/dist
+
 EXPOSE 3000
 
-# Default command
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start:prod"]

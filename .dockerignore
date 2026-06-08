@@ -1,0 +1,10 @@
+node_modules
+frontend/node_modules
+dist
+frontend/dist
+sqlite.db
+test-*.db
+.git
+.env
+.env.*
+npm-debug.log*
