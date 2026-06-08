@@ -10,7 +10,7 @@ This app can run as a single Node service in production:
 ## Recommended Option: Railway
 
 1. Create a new Railway project from this repository.
-2. Let Railway build with the repository `Dockerfile`.
+2. Let Railway build with the repository `Dockerfile`. The `railway.json` file pins the Dockerfile builder and configures `/health` as the deployment healthcheck.
 3. Add a persistent volume mounted at:
 
 ```text
